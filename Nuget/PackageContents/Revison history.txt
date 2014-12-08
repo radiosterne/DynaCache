@@ -1,0 +1,30 @@
+1.0.7
+Added ability to specify named cache durations in application configuration, e.g.: 
+  <configSections>
+    <section name="dynaCache" type="DynaCache.DynaCacheSection, DynaCache"/>
+  </configSections>
+
+  <dynaCache>
+    <cacheDurations>
+      <add name="short" duration="00:00:01" />
+      <add name="long" duration="00:01:00" />
+    </cacheDurations>
+  </dynaCache>
+
+Also tweaked how DateTime and DateTimeOffset parameters are recorded in cache keys to make them less prone to collision
+
+-------------------------------
+1.0.6
+Added Cacheable.CreateType(Type baseType) overload so types that are only known at runtime can be constructed with less difficulty.
+
+-------------------------------
+1.0.4
+Updated nuget package to have separate assembly for MemoryCache implementation - core assemblies are now .NET 3.5 compatible.
+
+-------------------------------
+1.0.3
+Bug fix for methods that return value types
+
+-------------------------------
+1.0.0
+Initial release

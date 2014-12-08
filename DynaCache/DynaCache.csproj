@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{F4EE6A5E-A9EC-4119-A8E3-A1D270732D0D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DynaCache</RootNamespace>
+    <AssemblyName>DynaCache</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DocumentationFile>bin\Release\DynaCache.XML</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="Cacheable.cs" />
+    <Compile Include="CacheableMethodAttribute.cs" />
+    <Compile Include="CacheDuration.cs" />
+    <Compile Include="CacheDurationCollection.cs" />
+    <Compile Include="DynaCacheSection.cs" />
+    <Compile Include="DynaCacheException.cs" />
+    <Compile Include="IDynaCacheService.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\DynaCache.snk">
+      <Link>DynaCache.snk</Link>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <NugetFolder>$(OutputPath)\..\..\..\Nuget\</NugetFolder>
+    <NugetLibFolder>$(NugetFolder)PackageContents\lib\</NugetLibFolder>
+  </PropertyGroup>
+  <Target Name="AfterBuild" DependsOnTargets="CleanNuget;PackageNugetFiles">
+  </Target>
+  <Target Name="CleanNuget" Condition="'$(Configuration)'=='RELEASE'">
+    <CreateItem Include="$(NugetLibFolder)\**\*.*">
+      <Output ItemName="OldNugetFiles" TaskParameter="Include" />
+    </CreateItem>
+    <Delete Files="@(OldNugetFiles)" />
+  </Target>
+  <Target Name="PackageNugetFiles" Condition="'$(Configuration)'=='RELEASE'" DependsOnTargets="CleanNuget">
+    <CreateItem Include="$(OutputPath)\**\*.*" Exclude="$(OutputPath)\**\*.pri;$(OutputPath)\**\*.zip;$(OutputPath)\**\*.tmp">
+      <Output ItemName="PackageFiles" TaskParameter="Include" />
+    </CreateItem>
+    <Copy SourceFiles="@(PackageFiles)" DestinationFiles="@(PackageFiles->'$(NugetLibFolder)\net40\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+</Project>
