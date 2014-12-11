@@ -1,3 +1,11 @@
+1.1.0
+Moved to DynaCache.Extended
+More safety added — caching allowed only for types with «safe», unique-key producing ToString implementation:
+either predefined system types, or types specifically marked with ToStringable attribute.
+
+Also for cases when proper ToString implementation is impossible, an ability to add custom type converter is added.
+
+-------------------------------
 1.0.7
 Added ability to specify named cache durations in application configuration, e.g.: 
   <configSections>

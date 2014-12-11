@@ -1,4 +1,4 @@
-#region Copyright 2012 Mike Goatly
+#region Copyright 2014 Andrey Kurnoskin, Mike Goatly
 // This source is subject to the the MIT License (MIT)
 // All rights reserved.
 #endregion
@@ -13,9 +13,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("RELEASE")]
 #endif
 
-[assembly: AssemblyCompany("Mike Goatly")]
-[assembly: AssemblyProduct("DynaCache")]
-[assembly: AssemblyCopyright("Copyright © Mike Goatly 2012-2013")]
+[assembly: AssemblyCompany("Andrey Kurnoskin")]
+[assembly: AssemblyProduct("DynaCache.Extended")]
+[assembly: AssemblyCopyright("Copyright © Andrey Kurnoskin, Mike Goatly 2012-2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -24,4 +24,4 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 [assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.6.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
