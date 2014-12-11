@@ -25,7 +25,10 @@ namespace DynaCache
         /// </summary>
         private static readonly Dictionary<Type, Type> CacheableTypeCache = new Dictionary<Type, Type>();
 
-        private static readonly HashSet<Type> ToStringableTypes = new HashSet<Type>()
+        /// <summary>
+        /// A collection of types with ToString implementation, suitable for cache key generation.
+        /// </summary>
+        private static readonly HashSet<Type> ToStringableTypes = new HashSet<Type>
         {
             typeof(string),
             typeof(sbyte),
@@ -43,7 +46,12 @@ namespace DynaCache
             typeof(char),
             typeof(decimal),
             typeof(DateTime)
-        }; 
+        };
+
+        /// <summary>
+        /// A dictionary of custom converters of objects to its cache key part representation.
+        /// </summary>
+        private static readonly Dictionary<Type, Func<object, string>> CustomConverters = new Dictionary<Type, Func<object, string>>(); 
 
         /// <summary>
         /// The thread synchronization object.
@@ -127,6 +135,14 @@ namespace DynaCache
                 cacheableType = CreateCacheableType(baseType);
                 CacheableTypeCache.Add(baseType, cacheableType);
                 return cacheableType;
+            }
+        }
+
+        public static void AddCustomConverter<T>(Func<T, string> converter) where T: class
+        {
+            lock (SyncLock)
+            {
+                CustomConverters.Add(typeof (T), o => converter((T)o));
             }
         }
 
@@ -238,7 +254,7 @@ namespace DynaCache
                     {
                         ToStringableTypes.Add(paramType);
                     }
-                    else
+                    else if(!CustomConverters.ContainsKey(paramType))
                     {
                         throw new DynaCacheException(
                             String.Format(
@@ -332,8 +348,12 @@ namespace DynaCache
                 if (!methodParams[i].ParameterType.IsClass)
                 {
                     il.Emit(OpCodes.Box, methodParams[i].ParameterType);
+                } 
+                else if (CustomConverters.ContainsKey(methodParams[i].ParameterType))
+                {
+                    il.EmitCall(OpCodes.Call, CustomConverters[methodParams[i].ParameterType].Method, null);
                 }
-
+                
                 il.Emit(OpCodes.Stelem_Ref);
             }
 

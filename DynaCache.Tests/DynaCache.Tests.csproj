@@ -58,7 +58,9 @@
     </Compile>
     <Compile Include="CallingCachedMethod.cs" />
     <Compile Include="AspNetCacheServiceTests.cs" />
+    <Compile Include="CustomConvertersTest.cs" />
     <Compile Include="MemoryCacheServiceTests.cs" />
+    <Compile Include="TestClasses\BasicCustomConverterTester.cs" />
     <Compile Include="TestClasses\GenericTester.cs" />
     <Compile Include="TestClasses\ICacheableMethodsTester.cs" />
     <Compile Include="TestClasses\IGenericTester.cs" />
