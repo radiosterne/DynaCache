@@ -118,5 +118,28 @@ namespace DynaCache.Tests
 
             Assert.AreEqual(6, result);
         }
+
+
+        /// <summary>
+        /// ToStringable parameters should be handled correctly.
+        /// </summary>
+        [TestMethod]
+        public void ShouldCreateValidProxyForToStringableParameter()
+        {
+            const string testString1 = "TestString1";
+            const string testString2 = "TestString2";
+            var cacheService = new Mock<IDynaCacheService>();
+            var cacheableType = Cacheable.CreateType<ToStringableTester>();
+
+            var instance = (ToStringableTester)Activator.CreateInstance(cacheableType, cacheService.Object);
+
+            var result = instance.GetToStringableValue(new ToStringableObject { Value = testString1 });
+
+            Assert.AreEqual(testString1, result);
+
+            result = instance.GetToStringableValue(new ToStringableObject { Value = testString2 });
+
+            Assert.AreEqual(testString2, result);
+        }
     }
 }

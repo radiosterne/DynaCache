@@ -1,7 +1,9 @@
-#region Copyright 2012 Mike Goatly
+#region Copyright 2012 Mike Goatly, 2014 Andrey Kurnoskin
 // This source is subject to the the MIT License (MIT)
 // All rights reserved.
 #endregion
+
+using System.Net.Sockets;
 
 namespace DynaCache
 {
@@ -22,6 +24,26 @@ namespace DynaCache
         /// A cache of dynamic cache types, keyed against the type they were generated for.
         /// </summary>
         private static readonly Dictionary<Type, Type> CacheableTypeCache = new Dictionary<Type, Type>();
+
+        private static readonly HashSet<Type> ToStringableTypes = new HashSet<Type>()
+        {
+            typeof(string),
+            typeof(sbyte),
+            typeof(short),
+            typeof(int),
+            typeof(long),
+            typeof(byte),
+            typeof(ushort),
+            typeof(uint),
+            typeof(ulong),
+            typeof(float),
+            typeof(float),
+            typeof(double),
+            typeof(bool),
+            typeof(char),
+            typeof(decimal),
+            typeof(DateTime)
+        }; 
 
         /// <summary>
         /// The thread synchronization object.
@@ -204,6 +226,27 @@ namespace DynaCache
             if (methodParams.Any(p => p.ParameterType.IsByRef))
             {
                 throw new DynaCacheException("Reference parameters (out/ref) are not supported for cacheable methods.");
+            }
+
+            foreach(var methodParam in methodParams)
+            {
+                var paramType = methodParam.ParameterType;
+
+                if (!(paramType.ContainsGenericParameters || ToStringableTypes.Contains(paramType) || (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>) && ToStringableTypes.Contains(paramType.GetGenericArguments()[0]))))
+                {
+                    if (paramType.GetCustomAttributes(typeof (ToStringableAttribute), false).Any())
+                    {
+                        ToStringableTypes.Add(paramType);
+                    }
+                    else
+                    {
+                        throw new DynaCacheException(
+                            String.Format(
+                            "Cacheable method has parameter without unique ToString() implementation: consider writing it and mark parameter type with ToStringable attribute." +
+                            "Method: {0}, Parameter {1} of type {2}",
+                            methodInfo.Name, methodParam.Name, paramType));
+                    }
+                }
             }
 
             var method = cacheableModule.DefineMethod(
