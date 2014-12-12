@@ -11,9 +11,9 @@ namespace DynaCache.Tests
         [TestMethod]
         public void TestBasicCustomConverter()
         {
-            Func<Exception, string> converter = e => e.Message;
+            Func<object, string> converter = e => ((Exception)e).Message;
 
-            Cacheable.AddCustomConverter(converter);
+            Cacheable.AddCustomConverter<Exception>(converter);
 
             const string testString1 = "TestString1";
             const string testString2 = "TestString2";

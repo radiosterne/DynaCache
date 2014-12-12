@@ -3,8 +3,6 @@
 // All rights reserved.
 #endregion
 
-using System.Net.Sockets;
-
 namespace DynaCache
 {
     using System;
@@ -143,11 +141,16 @@ namespace DynaCache
         /// </summary>
         /// <typeparam name="T">Type to convert from</typeparam>
         /// <param name="converter">Converter function from T to string</param>
-        public static void AddCustomConverter<T>(Func<T, string> converter) where T: class
+        public static void AddCustomConverter<T>(Func<object, string> converter) where T : class
         {
             lock (SyncLock)
             {
-                CustomConverters.Add(typeof (T), o => converter((T)o));
+                if (!converter.Method.IsPublic)
+                {
+                    throw new DynaCacheException(String.Format("An attempt to register private converter for type {0}",
+                        typeof (T)));
+                }
+                CustomConverters.Add(typeof(T), converter);
             }
         }
 
@@ -356,7 +359,7 @@ namespace DynaCache
                 } 
                 else if (CustomConverters.ContainsKey(methodParams[i].ParameterType))
                 {
-                    il.EmitCall(OpCodes.Call, CustomConverters[methodParams[i].ParameterType].Method, null);
+                    il.Emit(OpCodes.Call, CustomConverters[methodParams[i].ParameterType].Method);
                 }
                 
                 il.Emit(OpCodes.Stelem_Ref);
