@@ -77,12 +77,12 @@ namespace DynaCache
         /// <summary>
         /// The dynamic assembly build that will be used to define the cacheable types.
         /// </summary>
-        private static readonly AssemblyBuilder assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        private static readonly AssemblyBuilder AssemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(AssemblyName, AssemblyBuilderAccess.Run);
 
         /// <summary>
         /// The dynamic module that the cacheable types will be created in.
         /// </summary>
-        private static readonly ModuleBuilder module = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+        private static readonly ModuleBuilder Module = AssemblyBuilder.DefineDynamicModule(AssemblyName.Name);
 #endif
 
 #if DEBUG
@@ -138,6 +138,11 @@ namespace DynaCache
             }
         }
 
+        /// <summary>
+        /// Adds custom converter from type to string to enable this type usage in cacheable methods parameters
+        /// </summary>
+        /// <typeparam name="T">Type to convert from</typeparam>
+        /// <param name="converter">Converter function from T to string</param>
         public static void AddCustomConverter<T>(Func<T, string> converter) where T: class
         {
             lock (SyncLock)
