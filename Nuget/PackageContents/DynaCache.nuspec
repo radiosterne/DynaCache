@@ -2,12 +2,12 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>DynaCache.Extended</id>
-        <version>1.1.0</version>
+        <version>1.1.1</version>
         <title>DynaCache.Extended — safe output caching for classes with custom converters support</title>
         <authors>Mike Goatly, Andrey Kurnoskin</authors>
         <owners>Andrey Kurnoskin</owners>
         <licenseUrl>http://dynacache.codeplex.com/license</licenseUrl>
-        <projectUrl>http://dynacache.codeplex.com/</projectUrl>
+        <projectUrl>https://github.com/radiosterne/DynaCache</projectUrl>
         <iconUrl>http://www.goatly.net/media/default/winrttriggers.png</iconUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
         <description>DynaCache.Extended is a small C# library that allows you to automatically cache the output from standard .NET functions. Although it is possible to use it without one, DynaCache.Extended works best when used in conjunction with a dependency injection (DI) framework, such as StructureMap, Ninject, etc.</description>

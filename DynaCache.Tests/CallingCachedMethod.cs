@@ -141,5 +141,27 @@ namespace DynaCache.Tests
 
             Assert.AreEqual(testString2, result);
         }
+
+        /// <summary>
+        /// Enum parameters should be handled correctly.
+        /// </summary>
+        [TestMethod]
+        public void ShouldCreateValidProxyForEnumParameter()
+        {
+            const TestEnum testEnum1 = TestEnum.FirstValue;
+            const TestEnum testEnum2 = TestEnum.SecondValue;
+            var cacheService = new Mock<IDynaCacheService>();
+            var cacheableType = Cacheable.CreateType<EnumTester>();
+
+            var instance = (EnumTester)Activator.CreateInstance(cacheableType, cacheService.Object);
+
+            var result = instance.GetEnumValue(testEnum1);
+
+            Assert.AreEqual(testEnum1.ToString(), result);
+
+            result = instance.GetEnumValue(testEnum2);
+
+            Assert.AreEqual(testEnum2.ToString(), result);
+        }
     }
 }

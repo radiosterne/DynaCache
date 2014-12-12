@@ -253,7 +253,7 @@ namespace DynaCache
             {
                 var paramType = methodParam.ParameterType;
 
-                if (!(paramType.ContainsGenericParameters || ToStringableTypes.Contains(paramType) || (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>) && ToStringableTypes.Contains(paramType.GetGenericArguments()[0]))))
+                if (!(paramType.IsEnum || paramType.ContainsGenericParameters || ToStringableTypes.Contains(paramType) || (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>) && ToStringableTypes.Contains(paramType.GetGenericArguments()[0]))))
                 {
                     if (paramType.GetCustomAttributes(typeof (ToStringableAttribute), false).Any())
                     {

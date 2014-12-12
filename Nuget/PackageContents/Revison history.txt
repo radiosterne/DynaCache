@@ -1,3 +1,7 @@
+1.1.1
+Added enum method parameters handling
+
+-------------------------------
 1.1.0
 Moved to DynaCache.Extended
 More safety added — caching allowed only for types with «safe», unique-key producing ToString implementation:
