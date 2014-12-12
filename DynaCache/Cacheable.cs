@@ -145,11 +145,6 @@ namespace DynaCache
         {
             lock (SyncLock)
             {
-                if (!converter.Method.IsPublic)
-                {
-                    throw new DynaCacheException(String.Format("An attempt to register private converter for type {0}",
-                        typeof (T)));
-                }
                 CustomConverters.Add(typeof(T), converter);
             }
         }
