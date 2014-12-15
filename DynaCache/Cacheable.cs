@@ -49,7 +49,7 @@ namespace DynaCache
         /// <summary>
         /// A dictionary of custom converters of objects to its cache key part representation.
         /// </summary>
-        private static readonly Dictionary<Type, Func<object, string>> CustomConverters = new Dictionary<Type, Func<object, string>>(); 
+        private static readonly Dictionary<Type, MethodInfo> CustomConverters = new Dictionary<Type, MethodInfo>(); 
 
         /// <summary>
         /// The thread synchronization object.
@@ -141,11 +141,11 @@ namespace DynaCache
         /// </summary>
         /// <typeparam name="T">Type to convert from</typeparam>
         /// <param name="converter">Converter function from T to string</param>
-        public static void AddCustomConverter<T>(Func<object, string> converter) where T : class
+        public static void AddCustomConverter<T>(Func<T, string> converter) where T : class
         {
             lock (SyncLock)
             {
-                CustomConverters.Add(typeof(T), converter);
+                CustomConverters.Add(typeof(T), converter.Method);
             }
         }
 
@@ -354,7 +354,7 @@ namespace DynaCache
                 } 
                 else if (CustomConverters.ContainsKey(methodParams[i].ParameterType))
                 {
-                    il.Emit(OpCodes.Call, CustomConverters[methodParams[i].ParameterType].Method);
+                    il.Emit(OpCodes.Call, CustomConverters[methodParams[i].ParameterType]);
                 }
                 
                 il.Emit(OpCodes.Stelem_Ref);

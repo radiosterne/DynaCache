@@ -9,11 +9,11 @@ namespace DynaCache.Tests
     public class CustomConvertersTest
     {
         [TestMethod]
-        public void TestBasicCustomConverter()
+        public void ShouldUseSimpleCustomConverter()
         {
-            Func<object, string> converter = e => ((Exception)e).Message;
+            Func<Exception, string> converter = e => e.Message;
 
-            Cacheable.AddCustomConverter<Exception>(converter);
+            Cacheable.AddCustomConverter(converter);
 
             const string testString1 = "TestString1";
             const string testString2 = "TestString2";
