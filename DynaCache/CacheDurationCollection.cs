@@ -5,46 +5,46 @@
 
 namespace DynaCache
 {
-    #region Using declarations
+	#region Using declarations
 
-    using System.Configuration;
+	using System.Configuration;
 
-    #endregion
+	#endregion
 
-    /// <summary>
-    /// A collection of <see cref="CacheDuration"/> instances.
-    /// </summary>
-    public class CacheDurationCollection : ConfigurationElementCollection
-    {
-        /// <inheritdoc />
-        public new CacheDuration this[string name]
-        {
-            get
-            {
-                var duration = this.BaseGet(name) as CacheDuration;
-                if (duration == null)
-                {
-                    throw new DynaCacheException("Unknown named cache referenced: " + name);
-                }
+	/// <summary>
+	/// A collection of <see cref="CacheDuration"/> instances.
+	/// </summary>
+	public class CacheDurationCollection : ConfigurationElementCollection
+	{
+		/// <inheritdoc />
+		public new CacheDuration this[string name]
+		{
+			get
+			{
+				var duration = BaseGet(name) as CacheDuration;
+				if (duration == null)
+				{
+					throw new DynaCacheException("Unknown named cache referenced: " + name);
+				}
 
-                return duration;
-            }
-        }
+				return duration;
+			}
+		}
 
-        #region Methods
+		#region Methods
 
-        /// <inheritdoc />
-        protected override ConfigurationElement CreateNewElement()
-        {
-            return new CacheDuration();
-        }
+		/// <inheritdoc />
+		protected override ConfigurationElement CreateNewElement()
+		{
+			return new CacheDuration();
+		}
 
-        /// <inheritdoc />
-        protected override object GetElementKey(ConfigurationElement element)
-        {
-            return ((CacheDuration)element).Name;
-        }
+		/// <inheritdoc />
+		protected override object GetElementKey(ConfigurationElement element)
+		{
+			return ((CacheDuration)element).Name;
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }

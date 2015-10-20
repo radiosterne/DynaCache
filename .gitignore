@@ -185,3 +185,9 @@ UpgradeLog*.htm
 FakesAssemblies/
 DynaCache.AspNetCache/obj/Debug/DesignTimeResolveAssemblyReferencesInput.cache
 DynaCache.AspNetCache/obj/Debug/DesignTimeResolveAssemblyReferencesInput.cache
+*.cache
+DynaCache.v11.suo
+Nuget/PackageContents/lib/net40/DynaCache.dll
+Nuget/PackageContents/lib/net40/DynaCache.MemoryCache.XML
+Nuget/PackageContents/lib/net40/DynaCache.XML
+Nuget/PackageContents/lib/net40/DynaCache.MemoryCache.dll

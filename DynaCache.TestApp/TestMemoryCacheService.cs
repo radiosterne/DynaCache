@@ -3,58 +3,58 @@
 // All rights reserved.
 #endregion
 
-namespace DynaCache
+using System;
+using System.Runtime.Caching;
+
+namespace DynaCache.TestApp
 {
-    using System;
-    using System.Runtime.Caching;
+	/// <summary>
+	/// A sample memory cache that additionally outputs to the console window when data is stored
+	/// and read from the cache.
+	/// </summary>
+	public class TestMemoryCacheService : IDynaCacheService
+	{
+		/// <summary>
+		/// The in-memory cache.
+		/// </summary>
+		private readonly MemoryCache _cache = new MemoryCache("CacheService");
 
-    /// <summary>
-    /// A sample memory cache that additionally outputs to the console window when data is stored
-    /// and read from the cache.
-    /// </summary>
-    public class TestMemoryCacheService : IDynaCacheService
-    {
-        /// <summary>
-        /// The in-memory cache.
-        /// </summary>
-        private readonly MemoryCache cache = new MemoryCache("CacheService");
+		/// <summary>
+		/// Tries to get a cached object from the cache using the given cache key.
+		/// </summary>
+		/// <param name="cacheKey">The cache key of the object to read from the cache.</param>
+		/// <param name="result">The object that was read from the cache, or null if the key
+		/// could not be found in the cache.</param>
+		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
+		public virtual bool TryGetCachedObject(string cacheKey, out object result)
+		{
+			if (_cache.Contains(cacheKey))
+			{
+				result = _cache[cacheKey];
+				Console.ForegroundColor = ConsoleColor.DarkGreen;
+				Console.WriteLine("Read {0} from cache key {1}", result, cacheKey);
+				Console.ResetColor();
+				return true;
+			}
 
-        /// <summary>
-        /// Tries to get a cached object from the cache using the given cache key.
-        /// </summary>
-        /// <param name="cacheKey">The cache key of the object to read from the cache.</param>
-        /// <param name="result">The object that was read from the cache, or null if the key
-        /// could not be found in the cache.</param>
-        /// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
-        public virtual bool TryGetCachedObject(string cacheKey, out object result)
-        {
-            if (this.cache.Contains(cacheKey))
-            {
-                result = this.cache[cacheKey];
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine("Read {0} from cache key {1}", result, cacheKey);
-                Console.ResetColor();
-                return true;
-            }
+			Console.ForegroundColor = ConsoleColor.DarkRed;
+			Console.WriteLine("Cache miss for cache key {0}", cacheKey);
+			result = null;
+			return false;
+		}
 
-            Console.ForegroundColor = ConsoleColor.DarkRed;
-            Console.WriteLine("Cache miss for cache key {0}", cacheKey);
-            result = null;
-            return false;
-        }
-
-        /// <summary>
-        /// Stores an object in the cache.
-        /// </summary>
-        /// <param name="cacheKey">The cache key to store the object against.</param>
-        /// <param name="data">The data to store against the key.</param>
-        /// <param name="duration">The duration, in seconds, to cache the data for.</param>
-        public virtual void SetCachedObject(string cacheKey, object data, int duration)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Caching {0} against {1} for {2}s", data, cacheKey, duration);
-            Console.ResetColor();
-            this.cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
-        }
-    }
+		/// <summary>
+		/// Stores an object in the cache.
+		/// </summary>
+		/// <param name="cacheKey">The cache key to store the object against.</param>
+		/// <param name="data">The data to store against the key.</param>
+		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
+		public virtual void SetCachedObject(string cacheKey, object data, int duration)
+		{
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.WriteLine("Caching {0} against {1} for {2}s", data, cacheKey, duration);
+			Console.ResetColor();
+			_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
+		}
+	}
 }

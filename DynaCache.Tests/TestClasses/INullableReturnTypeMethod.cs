@@ -1,7 +1,7 @@
 ﻿namespace DynaCache.Tests.TestClasses
 {
-    public interface INullableReturnTypeMethod
-    {
-        int? ReturnsNullable(int? data);
-    }
+	public interface INullableReturnTypeMethod
+	{
+		int? ReturnsNullable(int? data);
+	}
 }

@@ -5,20 +5,20 @@
 
 namespace DynaCache.Tests.TestClasses
 {
-    using System;
-    using System.Collections.Generic;
+	using System;
+	using System.Collections.Generic;
 
-    /// <summary>
-    /// An interface that is implemented by various test classes.
-    /// </summary>
-    public interface ICacheableMethodsTester
-    {
-        void Execute();
+	/// <summary>
+	/// An interface that is implemented by various test classes.
+	/// </summary>
+	public interface ICacheableMethodsTester
+	{
+		void Execute();
 
-        int Execute(DateTime data);
+		int Execute(DateTime data);
 
-        object Execute(string data);
+		object Execute(string data);
 
-        List<string> Execute(int data1, object data2);
-    }
+		List<string> Execute(int data1, object data2);
+	}
 }

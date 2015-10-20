@@ -21,14 +21,14 @@ Also for cases when proper ToString implementation is impossible, an ability to 
 1.0.7
 Added ability to specify named cache durations in application configuration, e.g.: 
   <configSections>
-    <section name="dynaCache" type="DynaCache.DynaCacheSection, DynaCache"/>
+	<section name="dynaCache" type="DynaCache.DynaCacheSection, DynaCache"/>
   </configSections>
 
   <dynaCache>
-    <cacheDurations>
-      <add name="short" duration="00:00:01" />
-      <add name="long" duration="00:01:00" />
-    </cacheDurations>
+	<cacheDurations>
+	  <add name="short" duration="00:00:01" />
+	  <add name="long" duration="00:01:00" />
+	</cacheDurations>
   </dynaCache>
 
 Also tweaked how DateTime and DateTimeOffset parameters are recorded in cache keys to make them less prone to collision

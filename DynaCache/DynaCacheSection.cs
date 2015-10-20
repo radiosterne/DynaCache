@@ -5,35 +5,35 @@
 
 namespace DynaCache
 {
-    #region Using declarations
+	#region Using declarations
 
-    using System.Configuration;
+	using System.Configuration;
 
-    #endregion
+	#endregion
 
-    /// <summary>
-    /// The DynaCache configuration section.
-    /// </summary>
-    public class DynaCacheSection : ConfigurationSection
-    {
-        #region Public Properties
+	/// <summary>
+	/// The DynaCache configuration section.
+	/// </summary>
+	public class DynaCacheSection : ConfigurationSection
+	{
+		#region Public Properties
 
-        /// <summary>
-        /// Gets the set of configured cache durations.
-        /// </summary>
-        [ConfigurationProperty("cacheDurations", IsDefaultCollection = false)]
-        [ConfigurationCollection(typeof(CacheDurationCollection), 
-            AddItemName = "add", 
-            ClearItemsName = "clear", 
-            RemoveItemName = "remove")]
-        public CacheDurationCollection CacheDurations
-        {
-            get
-            {
-                return (CacheDurationCollection)base["cacheDurations"];
-            }
-        }
+		/// <summary>
+		/// Gets the set of configured cache durations.
+		/// </summary>
+		[ConfigurationProperty("cacheDurations", IsDefaultCollection = false)]
+		[ConfigurationCollection(typeof(CacheDurationCollection), 
+			AddItemName = "add", 
+			ClearItemsName = "clear", 
+			RemoveItemName = "remove")]
+		public CacheDurationCollection CacheDurations
+		{
+			get
+			{
+				return (CacheDurationCollection)base["cacheDurations"];
+			}
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }
