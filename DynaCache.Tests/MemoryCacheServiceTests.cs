@@ -22,9 +22,9 @@ namespace DynaCache.Tests
 		{
 			var cache = new MemoryCacheService();
 
-			object result;
-			Assert.IsFalse(cache.TryGetCachedObject("key1", out result));
-			Assert.IsNull(result);
+			var result = cache.TryGetCachedObject("key1");
+			Assert.AreEqual(result.State, CacheServiceEntryState.NotFound);
+			Assert.IsNull(result.Value);
 		}
 
 		/// <summary>
@@ -38,9 +38,9 @@ namespace DynaCache.Tests
 
 			cache.SetCachedObject("key2", "Boom", 1);
 
-			object result;
-			Assert.IsTrue(cache.TryGetCachedObject("key2", out result));
-			Assert.AreEqual("Boom", result);
+			var result = cache.TryGetCachedObject("key2");
+			Assert.AreEqual(result.State, CacheServiceEntryState.Actual);
+			Assert.AreEqual("Boom", result.Value);
 		}
 
 		/// <summary>
@@ -56,9 +56,9 @@ namespace DynaCache.Tests
 
 			Thread.Sleep(1200);
 
-			object result;
-			Assert.IsFalse(cache.TryGetCachedObject("key3", out result));
-			Assert.IsNull(result);
+			var result = cache.TryGetCachedObject("key3");
+			Assert.AreEqual(CacheServiceEntryState.Stale, result.State);
+			Assert.AreEqual("Boom", result.Value);
 		}
 
 		/// <summary>
@@ -71,9 +71,9 @@ namespace DynaCache.Tests
 
 			cache.SetCachedObject("key3", null, 1);
 
-			object result;
-			Assert.IsTrue(cache.TryGetCachedObject("key3", out result));
-			Assert.IsNull(result);
+			var result = cache.TryGetCachedObject("key3");
+			Assert.AreEqual(result.State, CacheServiceEntryState.Actual);
+			Assert.AreEqual(null, result.Value);
 		}
 	}
 }

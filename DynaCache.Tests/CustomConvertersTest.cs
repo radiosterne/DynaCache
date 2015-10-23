@@ -13,14 +13,15 @@ namespace DynaCache.Tests
 		{
 			Func<Exception, string> converter = e => e.Message;
 
-			Cacheable.AddCustomConverter(converter);
+			Cacheable.AddCustomConverter<Exception>(ExceptionConverter);
 
 			const string testString1 = "TestString1";
 			const string testString2 = "TestString2";
-			var cacheService = new Mock<IDynaCacheService>();
+			var cacheService = new MemoryCacheService();
 			var cacheableType = Cacheable.CreateType<BasicCustomConverterTester>();
+			Cacheable.SaveAssembly();
 
-			var instance = (BasicCustomConverterTester)Activator.CreateInstance(cacheableType, cacheService.Object);
+			var instance = (BasicCustomConverterTester)Activator.CreateInstance(cacheableType, cacheService);
 
 			var result = instance.GetMessage(new Exception(testString1));
 
@@ -29,6 +30,11 @@ namespace DynaCache.Tests
 			result = instance.GetMessage(new Exception(testString2));
 
 			Assert.AreEqual(testString2, result);
+		}
+
+		public static string ExceptionConverter(Exception e)
+		{
+			return e.Message;
 		}
 	}
 }

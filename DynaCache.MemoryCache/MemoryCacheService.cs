@@ -3,13 +3,14 @@
 // All rights reserved.
 #endregion
 
+using System.Collections.Concurrent;
+
 namespace DynaCache
 {
 	using System;
-	using System.Runtime.Caching;
 
 	/// <summary>
-	/// An implementation of <see cref="IDynaCacheService"/> that uses the .NET 4.0 in-memory cache.
+	/// An implementation of <see cref="IDynaCacheService"/> that uses custom in-memory cache.
 	/// </summary>
 	public class MemoryCacheService : IDynaCacheService, IDisposable
 	{
@@ -18,41 +19,15 @@ namespace DynaCache
 		/// </summary>
 		private static readonly object NullReference = new object();
 
-		/// <summary>
-		/// The in-memory cache instance for this service.
-		/// </summary>
-		private readonly MemoryCache _cache = new MemoryCache("CacheService");
+		private readonly ConcurrentDictionary<string, MemoryCacheEntry> _table = new ConcurrentDictionary<string, MemoryCacheEntry>();
 
-		/// <summary>
-		/// Tries to get a cached object from the cache using the given cache key.
-		/// </summary>
-		/// <param name="cacheKey">The cache key of the object to read from the cache.</param>
-		/// <param name="result">The object that was read from the cache, or null if the key
-		/// could not be found in the cache.</param>
-		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
-		public virtual bool TryGetCachedObject(string cacheKey, out object result)
+		/// <inheritdoc />
+		public virtual MemoryCacheEntry TryGetCachedObject(string cacheKey)
 		{
-			if (_cache.Contains(cacheKey))
-			{
-				result = _cache[cacheKey];
-				if (Equals(result, NullReference))
-				{
-					result = null;
-				}
-
-				return true;
-			}
-
-			result = null;
-			return false;
+			return _table.ContainsKey(cacheKey) ? _table[cacheKey] : new MemoryCacheEntry();
 		}
 
-		/// <summary>
-		/// Stores an object in the cache.
-		/// </summary>
-		/// <param name="cacheKey">The cache key to store the object against.</param>
-		/// <param name="data">The data to store against the key.</param>
-		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
+		/// <inheritdoc />
 		public virtual void SetCachedObject(string cacheKey, object data, int duration)
 		{
 			if (data == null)
@@ -60,7 +35,9 @@ namespace DynaCache
 				data = NullReference;
 			}
 
-			_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
+			var entry = new MemoryCacheEntry(data, duration);
+
+			_table[cacheKey] = entry;
 		}
 
 		/// <summary>
@@ -80,7 +57,6 @@ namespace DynaCache
 		{
 			if (disposing)
 			{
-				_cache.Dispose();
 			}
 		}
 	}
