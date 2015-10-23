@@ -1,7 +1,6 @@
 ﻿using System;
 using DynaCache.Tests.TestClasses;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 
 namespace DynaCache.Tests
 {

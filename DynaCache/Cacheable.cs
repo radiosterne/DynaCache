@@ -1,4 +1,4 @@
-#region Copyright 2012 Mike Goatly, 2014 Andrey Kurnoskin
+#region Copyright 2012 Mike Goatly, 2014-2015 Andrey Kurnoskin
 // This source is subject to the the MIT License (MIT)
 // All rights reserved.
 #endregion
@@ -63,8 +63,6 @@ namespace DynaCache
 		/// </summary>
 		private static readonly AssemblyName AssemblyName = new AssemblyName("Dynamic Cacheable Proxies");
 
-		private static readonly Type RenewerWrapperType; 
-
 #if DEBUG
 		/// <summary>
 		/// The dynamic assembly build that will be used to define the cacheable types.
@@ -97,102 +95,6 @@ namespace DynaCache
 			AssemblyBuilder.Save("test.dll", PortableExecutableKinds.ILOnly, ImageFileMachine.I386);
 		}
 #endif
-
-		static Cacheable()
-		{
-			//Creating in our dynamic assembly wrapper type
-			//for renewing cache entry state
-			var renewerType = Module.DefineType("CacheEntryRenewerWrapper");
-			var field = renewerType.DefineField("_entry", typeof (MemoryCacheEntry), FieldAttributes.Private);
-			var constructor = renewerType.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new[] {typeof (MemoryCacheEntry)});
-			var constructorIl = constructor.GetILGenerator();
-
-			//load this and entry on stack and set field value
-			constructorIl.Emit(OpCodes.Ldarg_0);
-			constructorIl.Emit(OpCodes.Ldarg_1);
-			constructorIl.Emit(OpCodes.Stfld, field);
-			constructorIl.Emit(OpCodes.Ret);
-
-			var renewerMethod = renewerType.DefineMethod(
-				"RenewWrapper",
-				MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
-
-			renewerMethod.SetReturnType(typeof(void));
-
-			var typeBuilders = renewerMethod.DefineGenericParameters("T");
-			var typebuilder = typeBuilders[0];
-
-			var parameterType = typeof(Task<>).MakeGenericType(typebuilder);
-
-			renewerMethod.SetParameters(parameterType);
-
-			var renewerMethodIl = renewerMethod.GetILGenerator();
-
-			var elseBranchLabel = renewerMethodIl.DefineLabel();
-			//if(task.IsCompleted)
-			renewerMethodIl.Emit(OpCodes.Ldarg_1);
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(Task).GetProperty("IsCompleted", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
-			renewerMethodIl.Emit(OpCodes.Brfalse_S, elseBranchLabel);
-
-			//load entry on stack
-			renewerMethodIl.Emit(OpCodes.Ldarg_0);
-			renewerMethodIl.Emit(OpCodes.Ldfld, field);
-
-			//load task result on stack
-			renewerMethodIl.Emit(OpCodes.Ldarg_1);
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(Task<>).GetProperty("Result", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
-
-			//call Renew on entry with task result
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetMethod("Renew", BindingFlags.Instance | BindingFlags.Public));
-			renewerMethodIl.Emit(OpCodes.Ret);
-
-			// else task failed, should revert entry to stale state
-			renewerMethodIl.MarkLabel(elseBranchLabel);
-
-			//load entry on stack
-			renewerMethodIl.Emit(OpCodes.Ldarg_0);
-			renewerMethodIl.Emit(OpCodes.Ldfld, field);
-
-			//call LoadingFailed
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetMethod("LoadingFailed", BindingFlags.Instance | BindingFlags.Public));
-
-			renewerMethodIl.Emit(OpCodes.Ret);
-
-			var methodDelegate = renewerType.DefineMethod("GetRenewerWrapperDelegate", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
-
-			var delegateTypeBuilders = methodDelegate.DefineGenericParameters("T");
-			var delegateTypeBuilder = delegateTypeBuilders[0];
-
-			var delegateParameterType = typeof(Task<>).MakeGenericType(delegateTypeBuilder);
-
-			var delegateType = typeof(Action<>).MakeGenericType(delegateParameterType);
-
-			methodDelegate.SetReturnType(delegateType);
-
-			var methodDelegateIl = methodDelegate.GetILGenerator();
-
-			//somehow Action constructor needs this
-			methodDelegateIl.Emit(OpCodes.Ldnull);
-			//loading this into stack and getting pointer to a function
-			methodDelegateIl.Emit(OpCodes.Ldarg_0);
-			methodDelegateIl.Emit(OpCodes.Ldftn, renewerMethod);
-
-			//to get constructor of our delegate we first need to get constructor of it's open type...
-			var openTypeConstructor = typeof (Action<>).GetConstructors()[0];
-			//... and then «instantiate» it using TypeBuilder
-			var closedTypeConstructor = TypeBuilder.GetConstructor(delegateType, openTypeConstructor);
-
-			//creating delegate and returning it
-			methodDelegateIl.Emit(OpCodes.Newobj, closedTypeConstructor);
-			methodDelegateIl.Emit(OpCodes.Ret);
-
-			//look, mum, I'm re-implementing lambda function compilation logic
-			//with no hands!
-
-			renewerType.CreateType();
-
-			RenewerWrapperType = renewerType;
-		}
 
 		/// <summary>
 		/// Creates a dynamic cache proxy type for a given type. Any methods that are decorated with <see cref="CacheableMethodAttribute"/>
@@ -368,7 +270,9 @@ namespace DynaCache
 				}
 			}
 
-			var methodActionWrapperType = CreateMethodActionWrapperType(methodInfo, methodParams);
+			var signatureStringRepresentation = CreateMethodSignatureStringRepresentation(methodInfo);
+			var cacheKeyTemplate = CreateCacheKeyTemplate(signatureStringRepresentation, methodParams);
+			var methodActionWrapperConstructorAndDelegate = CreateMethodActionWrapperType(signatureStringRepresentation, methodInfo, methodParams);
 
 			var method = cacheableModule.DefineMethod(
 				methodInfo.Name,
@@ -380,42 +284,52 @@ namespace DynaCache
 			var cacheKeyLocal = il.DeclareLocal(typeof(string));
 			var returnValueLocal = il.DeclareLocal(method.ReturnType);
 			var cacheOutValueLocal = il.DeclareLocal(typeof(MemoryCacheEntry));
+			var stringFormatParametersArrayLocal = il.DeclareLocal(typeof(object[]));
 
-			var cacheKeyTemplate = CreateCacheKeyTemplate(methodInfo, methodParams);
-			var objectArrayLocal = il.DeclareLocal(typeof(object[]));
-
+			//=========== formatting cache key ===========
+			//create object[] to pass to String.Format as parameters
 			il.Emit(OpCodes.Ldc_I4, methodParams.Length);
 			il.Emit(OpCodes.Newarr, typeof(object));
-			il.Emit(OpCodes.Stloc, objectArrayLocal);
+			il.Emit(OpCodes.Stloc, stringFormatParametersArrayLocal);
 
 			for (var i = 0; i < methodParams.Length; i++)
 			{
-				il.Emit(OpCodes.Ldloc, objectArrayLocal);
+				//loading array and index
+				il.Emit(OpCodes.Ldloc, stringFormatParametersArrayLocal);
 				il.Emit(OpCodes.Ldc_I4, i);
+
+				//loading argument to push
 				il.Emit(OpCodes.Ldarg, i + 1);
 				if (!methodParams[i].ParameterType.IsClass)
 				{
+					//box if it's value type
 					il.Emit(OpCodes.Box, methodParams[i].ParameterType);
 				}
 				else if (CustomConverters.ContainsKey(methodParams[i].ParameterType))
 				{
+					//call converter if specified
 					il.Emit(OpCodes.Call, CustomConverters[methodParams[i].ParameterType]);
 				}
 
+				//now we have array, index and object (maybe its converted representation) on stack
 				il.Emit(OpCodes.Stelem_Ref);
 			}
 
+			//calling format and storing
 			il.Emit(OpCodes.Ldstr, cacheKeyTemplate);
+			il.Emit(OpCodes.Ldloc, stringFormatParametersArrayLocal);
+			il.EmitCall(OpCodes.Call, StringFormat, null);
 			il.Emit(OpCodes.Stloc, cacheKeyLocal);
-			il.Emit(OpCodes.Ldloc, cacheKeyLocal);
-			il.Emit(OpCodes.Ldloc, objectArrayLocal);
-			il.EmitCall(OpCodes.Call, typeof(string).GetMethod("Format", new[] { typeof(string), typeof(object[]) }), null);
-			il.Emit(OpCodes.Stloc, cacheKeyLocal);
+
+			//=========== loading value at cache key from underlying cache service ===========
 
 			il.Emit(OpCodes.Ldarg_0);
 			il.Emit(OpCodes.Ldfld, cacheServiceField);
+
+			//we can actually eliminate the need in cacheKeyLocal by using it right from the stack
+			//but it greatly diminishes readability
 			il.Emit(OpCodes.Ldloc, cacheKeyLocal);
-			il.EmitCall(OpCodes.Callvirt, typeof(IDynaCacheService).GetMethod("TryGetCachedObject"), null);
+			il.EmitCall(OpCodes.Callvirt, DynaCacheServiceTryGetCachedObject, null);
 			il.Emit(OpCodes.Stloc, cacheOutValueLocal);
 
 			//=========== implementing switch table ===========
@@ -434,7 +348,7 @@ namespace DynaCache
 
 			//pushing result state to stack
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			il.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetProperty("State", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
+			il.Emit(OpCodes.Callvirt, MemoryCacheEntryStateGetter);
 
 			//switch table or jumping to default label
 			il.Emit(OpCodes.Switch, switchLabels);
@@ -445,7 +359,7 @@ namespace DynaCache
 
 			//try get loading lock
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			il.EmitCall(OpCodes.Call, typeof(MemoryCacheEntry).GetMethod("GetLoadingLock"), null);
+			il.EmitCall(OpCodes.Call, MemoryCacheEntryGetLoadingLock, null);
 			//if failed, return value
 			il.Emit(OpCodes.Brfalse, switchLabels[0]);
 
@@ -456,10 +370,9 @@ namespace DynaCache
 				il.Emit(OpCodes.Ldarg, i + 1);
 			}
 
-			//we know type has one constructor and that's the one we need
-			il.Emit(OpCodes.Newobj, methodActionWrapperType.GetConstructors()[0]);
+			il.Emit(OpCodes.Newobj, methodActionWrapperConstructorAndDelegate.Item1);
 			//calling method to return us delegate
-			il.Emit(OpCodes.Call, methodActionWrapperType.GetMethod("GetMethodActionDelegate"));
+			il.Emit(OpCodes.Call, methodActionWrapperConstructorAndDelegate.Item2);
 
 			//GetMethod does not handle generic methods properly, soooo let's do magic
 			// ReSharper disable UseCollectionCountProperty -- can not use extension methods here
@@ -481,11 +394,10 @@ namespace DynaCache
 
 			//Create renewer
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			// ReSharper disable once AssignNullToNotNullAttribute --not null because type is created with such a constructor in static constructor of Cacheable
-			il.Emit(OpCodes.Newobj, RenewerWrapperType.GetConstructor(new[] { typeof(MemoryCacheEntry) }));
+			il.Emit(OpCodes.Newobj, RenewWrapperConstructor);
 
 			//Get delegate from renewer
-			il.Emit(OpCodes.Call, RenewerWrapperType.GetMethod("GetRenewerWrapperDelegate").MakeGenericMethod(method.ReturnType));
+			il.Emit(OpCodes.Call, RenewWrapperGetRenewerWrapperDelegate.MakeGenericMethod(method.ReturnType));
 
 			//another magic to get right ContinueWith override
 			// ReSharper disable once UseCollectionCountProperty -- can not use extension methods here
@@ -504,22 +416,25 @@ namespace DynaCache
 			il.MarkLabel(switchLabels[1]);
 
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			il.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
+			il.Emit(OpCodes.Callvirt, MemoryCacheEntryCalueGetter);
 			il.Emit(returnValueLocal.LocalType.IsClass ? OpCodes.Castclass : OpCodes.Unbox_Any, returnValueLocal.LocalType);
 			il.Emit(OpCodes.Ret);
 
 			//default case — get value from underlying function, store it in cache and return
-
 			il.MarkLabel(defaultLabel);
+
+			//load all our parameters
 			il.Emit(OpCodes.Ldarg_0);
 			for (var i = 1; i <= methodParams.Length; i++)
 			{
 				il.Emit(OpCodes.Ldarg, i);
 			}
 
+			//call base method and store it 
 			il.EmitCall(OpCodes.Call, methodInfo, null);
-
 			il.Emit(OpCodes.Stloc, returnValueLocal);
+
+			//load service
 			il.Emit(OpCodes.Ldarg_0);
 			il.Emit(OpCodes.Ldfld, cacheServiceField);
 			il.Emit(OpCodes.Ldloc, cacheKeyLocal);
@@ -532,35 +447,26 @@ namespace DynaCache
 
 			il.Emit(OpCodes.Ldc_I4, cacheParams.CacheSeconds);
 
-			il.EmitCall(OpCodes.Callvirt, typeof(IDynaCacheService).GetMethod("SetCachedObject"), null);
+			//send base method return value to cache service
+			il.EmitCall(OpCodes.Callvirt, DynaCacheServiceSetCachedObject, null);
 
 			il.Emit(OpCodes.Ldloc, returnValueLocal);
 			il.Emit(OpCodes.Ret);
 		}
-
-		private static readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>
-																{
-																	{ typeof(DateTime), ":O" },
-																	{ typeof(DateTime?), ":O" },
-																	{ typeof(DateTimeOffset), ":O" },
-																	{ typeof(DateTimeOffset?), ":O" }
-																};
 
 		/// <summary>
 		/// Creates a template for a method's cache key, based on the class it is contained within and the number
 		/// of parameters it takes. The cache key template is used at runtime to generate a unique cache key for 
 		/// a method and it's parameter variations.
 		/// </summary>
-		/// <param name="methodInfo">The method information.</param>
+		/// <param name="signatureRepresentation">The method information as string.</param>
 		/// <param name="methodParams">The method's parameters.</param>
 		/// <returns>The cache key template.</returns>
-		private static string CreateCacheKeyTemplate(MethodInfo methodInfo, ParameterInfo[] methodParams)
+		private static string CreateCacheKeyTemplate(string signatureRepresentation, ParameterInfo[] methodParams)
 		{
 			var cacheKeyTemplate = new StringBuilder();
 			// ReSharper disable once PossibleNullReferenceException -- we know that DeclaringType exists for sure
-			cacheKeyTemplate.Append(methodInfo.DeclaringType.FullName)
-				.Append('_')
-				.Append(methodInfo);
+			cacheKeyTemplate.Append(signatureRepresentation);
 
 			for (var i = 0; i < methodParams.Length; i++)
 			{
@@ -577,10 +483,28 @@ namespace DynaCache
 			return cacheKeyTemplate.ToString();
 		}
 
-		private static Type CreateMethodActionWrapperType(MethodInfo methodInfo, ParameterInfo[] methodParams)
+		/// <summary>
+		/// Creates safe representation of method signature, including method declaring type.
+		/// </summary>
+		/// <param name="methodInfo">The method information.</param>
+		/// <returns>The method information as string.</returns>
+		private static string CreateMethodSignatureStringRepresentation(MethodInfo methodInfo)
 		{
-			// ReSharper disable once PossibleNullReferenceException -- definitely not null by design
-			var wrapperType = Module.DefineType(String.Format("MethodActionWrapperType_{0}_{1}", methodInfo.DeclaringType.FullName, methodInfo.Name));
+			// ReSharper disable once PossibleNullReferenceException -- not null by design
+			// we're doing a lot of Replace's to make type fit into our module without creating another namespace
+			return String.Format("{0}_{1}", methodInfo.DeclaringType.FullName.Replace('.', '_'), methodInfo.ToString().Replace('(', '_').Replace(')', '_').Replace('.', '_')).Replace(' ', '_');
+		}
+
+		/// <summary>
+		/// Creates wrapper type for a method, storing method parameters as private fields and exposing parameterless Func delegate to call it
+		/// </summary>
+		/// <param name="signatureStringRepresentation">The method information as string.</param>
+		/// <param name="methodInfo">The method information.</param>
+		/// <param name="methodParams">The method parameters information.</param>
+		/// <returns></returns>
+		private static Tuple<ConstructorInfo, MethodInfo> CreateMethodActionWrapperType(string signatureStringRepresentation, MethodInfo methodInfo, ParameterInfo[] methodParams)
+		{
+			var wrapperType = Module.DefineType(String.Format("MethodActionWrapperType_{0}", signatureStringRepresentation));
 
 			//in our type, we'll have a private field for every original method parameter and another one for an object on which we'll call it
 
@@ -612,6 +536,7 @@ namespace DynaCache
 
 			constructorIl.Emit(OpCodes.Ret);
 
+			//defining method T MethodAction()
 			var method = wrapperType.DefineMethod("MethodAction", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
 
 			method.SetReturnType(methodInfo.ReturnType);
@@ -635,6 +560,7 @@ namespace DynaCache
 			//now we have original method return value on stack so we just return it
 			methodIl.Emit(OpCodes.Ret);
 
+			//defining method Func<T> GetMethodActionDelegate()
 			//we create method delegate in separate method in this type to make logic of our basic method simplier
 			var methodDelegate = wrapperType.DefineMethod("GetMethodActionDelegate", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
 
@@ -652,7 +578,150 @@ namespace DynaCache
 			methodDelegateIl.Emit(OpCodes.Newobj, delegateType.GetConstructors()[0]);
 			methodDelegateIl.Emit(OpCodes.Ret);
 
-			return wrapperType.CreateType();
+			wrapperType.CreateType();
+
+			return Tuple.Create((ConstructorInfo)constructor, (MethodInfo)methodDelegate);
 		}
+
+		/// <summary>
+		/// Creates wrapper type for MemoryCacheEntry, storing it as private fields and exposing Action{Task{T}} delegate to call it
+		/// </summary>
+		static Cacheable()
+		{
+			//Creating in our dynamic assembly wrapper type
+			//for renewing cache entry state
+			var renewerType = Module.DefineType("CacheEntryRenewerWrapper");
+			var field = renewerType.DefineField("_entry", typeof(MemoryCacheEntry), FieldAttributes.Private);
+			var constructor = renewerType.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new[] { typeof(MemoryCacheEntry) });
+			var constructorIl = constructor.GetILGenerator();
+
+			//load this and entry on stack and set field value
+			constructorIl.Emit(OpCodes.Ldarg_0);
+			constructorIl.Emit(OpCodes.Ldarg_1);
+			constructorIl.Emit(OpCodes.Stfld, field);
+			constructorIl.Emit(OpCodes.Ret);
+
+			//caching ConstructorInfo for reusage
+			RenewWrapperConstructor = constructor;
+
+			//defining method void RenewWrapper<T>(Task<T> task)
+			//if task completed succesfuully, renew entry value
+			//else reset it's state to Stale
+			var renewerMethod = renewerType.DefineMethod(
+				"RenewWrapper",
+				MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
+
+			renewerMethod.SetReturnType(typeof(void));
+
+			var typeBuilders = renewerMethod.DefineGenericParameters("T");
+			var typebuilder = typeBuilders[0];
+
+			var parameterType = typeof(Task<>).MakeGenericType(typebuilder);
+
+			renewerMethod.SetParameters(parameterType);
+
+			var renewerMethodIl = renewerMethod.GetILGenerator();
+
+			var elseBranchLabel = renewerMethodIl.DefineLabel();
+			//if(task.IsCompleted)
+			renewerMethodIl.Emit(OpCodes.Ldarg_1);
+			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(Task).GetProperty("IsCompleted", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
+			renewerMethodIl.Emit(OpCodes.Brfalse_S, elseBranchLabel);
+
+			//load entry on stack
+			renewerMethodIl.Emit(OpCodes.Ldarg_0);
+			renewerMethodIl.Emit(OpCodes.Ldfld, field);
+
+			//load task result on stack
+			renewerMethodIl.Emit(OpCodes.Ldarg_1);
+			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(Task<>).GetProperty("Result", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
+
+			//call Renew on entry with task result
+			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetMethod("Renew", BindingFlags.Instance | BindingFlags.Public));
+			renewerMethodIl.Emit(OpCodes.Ret);
+
+			// else task failed, should revert entry to stale state
+			renewerMethodIl.MarkLabel(elseBranchLabel);
+
+			//load entry on stack
+			renewerMethodIl.Emit(OpCodes.Ldarg_0);
+			renewerMethodIl.Emit(OpCodes.Ldfld, field);
+
+			//call LoadingFailed
+			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetMethod("LoadingFailed", BindingFlags.Instance | BindingFlags.Public));
+
+			renewerMethodIl.Emit(OpCodes.Ret);
+
+			//defining method Action<Task<T>> GetRenewerWrapperDelegate<T>()
+			//wraps RenewWrapper in Action to make Cacheable target method easier
+			var methodDelegate = renewerType.DefineMethod("GetRenewerWrapperDelegate", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
+
+			var delegateTypeBuilders = methodDelegate.DefineGenericParameters("T");
+			var delegateTypeBuilder = delegateTypeBuilders[0];
+
+			var delegateParameterType = typeof(Task<>).MakeGenericType(delegateTypeBuilder);
+
+			var delegateType = typeof(Action<>).MakeGenericType(delegateParameterType);
+
+			methodDelegate.SetReturnType(delegateType);
+
+			var methodDelegateIl = methodDelegate.GetILGenerator();
+
+			//somehow Action constructor needs this
+			methodDelegateIl.Emit(OpCodes.Ldnull);
+			//loading this into stack and getting pointer to a function
+			methodDelegateIl.Emit(OpCodes.Ldarg_0);
+			methodDelegateIl.Emit(OpCodes.Ldftn, renewerMethod);
+
+			//to get constructor of our delegate we first need to get constructor of it's open type...
+			var openTypeConstructor = typeof(Action<>).GetConstructors()[0];
+			//... and then «instantiate» it using TypeBuilder
+			var closedTypeConstructor = TypeBuilder.GetConstructor(delegateType, openTypeConstructor);
+
+			//creating delegate and returning it
+			methodDelegateIl.Emit(OpCodes.Newobj, closedTypeConstructor);
+			methodDelegateIl.Emit(OpCodes.Ret);
+
+			//caching MethodInfo for reusage
+			RenewWrapperGetRenewerWrapperDelegate = methodDelegate;
+
+			//look, mum, I'm re-implementing lambda function compilation logic
+			//with no hands!
+
+			renewerType.CreateType();
+		}
+
+		private static readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>
+																{
+																	{ typeof(DateTime), ":O" },
+																	{ typeof(DateTime?), ":O" },
+																	{ typeof(DateTimeOffset), ":O" },
+																	{ typeof(DateTimeOffset?), ":O" }
+																};
+
+		#region pre-loaded MethodInfos
+
+		private static readonly MethodInfo StringFormat = typeof(string).GetMethod("Format",
+			new[] { typeof(string), typeof(object[]) });
+
+		private static readonly MethodInfo DynaCacheServiceTryGetCachedObject =
+			typeof(IDynaCacheService).GetMethod("TryGetCachedObject");
+
+		private static readonly MethodInfo DynaCacheServiceSetCachedObject =
+			typeof(IDynaCacheService).GetMethod("SetCachedObject");
+
+		private static readonly MethodInfo MemoryCacheEntryStateGetter =
+			typeof(MemoryCacheEntry).GetProperty("State", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
+		private static readonly MethodInfo MemoryCacheEntryGetLoadingLock = typeof(MemoryCacheEntry).GetMethod("GetLoadingLock");
+
+		private static readonly MethodInfo MemoryCacheEntryCalueGetter =
+			typeof(MemoryCacheEntry).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
+		private static readonly ConstructorInfo RenewWrapperConstructor;
+
+		private static readonly MethodInfo RenewWrapperGetRenewerWrapperDelegate;
+
+		#endregion
 	}
 }
