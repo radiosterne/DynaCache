@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache", "DynaCache\DynaCache.csproj", "{F4EE6A5E-A9EC-4119-A8E3-A1D270732D0D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.Tests", "DynaCache.Tests\DynaCache.Tests.csproj", "{A6480115-F526-44BA-BCAF-0223C3425B1F}"
@@ -15,8 +17,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.TestApp", "DynaCa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.MemoryCache", "DynaCache.MemoryCache\DynaCache.MemoryCache.csproj", "{37A75E49-01D3-4AC5-BAB9-CE31EA518859}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.AspNetCache", "DynaCache.AspNetCache\DynaCache.AspNetCache.csproj", "{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{B2CEDB6F-E6A3-41DC-8AD4-F794E3AAA911}"
 	ProjectSection(SolutionItems) = preProject
 		Nuget\PackageContents\DynaCache.nuspec = Nuget\PackageContents\DynaCache.nuspec
@@ -26,27 +26,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{B2CEDB6F
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 6
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs06
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = DynaCache.TestApp\\DynaCache.TestApp.csproj
-		SccProjectName1 = DynaCache.TestApp
-		SccLocalPath1 = DynaCache.TestApp
-		SccProjectUniqueName2 = DynaCache.Tests\\DynaCache.Tests.csproj
-		SccProjectName2 = DynaCache.Tests
-		SccLocalPath2 = DynaCache.Tests
-		SccProjectUniqueName3 = DynaCache\\DynaCache.csproj
-		SccProjectName3 = DynaCache
-		SccLocalPath3 = DynaCache
-		SccProjectUniqueName4 = DynaCache.MemoryCache\\DynaCache.MemoryCache.csproj
-		SccProjectName4 = DynaCache.MemoryCache
-		SccLocalPath4 = DynaCache.MemoryCache
-		SccProjectUniqueName5 = DynaCache.AspNetCache\\DynaCache.AspNetCache.csproj
-		SccProjectName5 = DynaCache.AspNetCache
-		SccLocalPath5 = DynaCache.AspNetCache
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -96,16 +75,6 @@ Global
 		{37A75E49-01D3-4AC5-BAB9-CE31EA518859}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{37A75E49-01D3-4AC5-BAB9-CE31EA518859}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{37A75E49-01D3-4AC5-BAB9-CE31EA518859}.Release|x86.ActiveCfg = Release|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

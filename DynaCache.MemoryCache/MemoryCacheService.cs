@@ -14,27 +14,17 @@ namespace DynaCache
 	/// </summary>
 	public class MemoryCacheService : IDynaCacheService, IDisposable
 	{
-		/// <summary>
-		/// An object that represents a cached null value. (MemoryCache does not allow for null values to be cached explicitly.)
-		/// </summary>
-		private static readonly object NullReference = new object();
-
 		private readonly ConcurrentDictionary<string, MemoryCacheEntry> _table = new ConcurrentDictionary<string, MemoryCacheEntry>();
 
 		/// <inheritdoc />
 		public virtual MemoryCacheEntry TryGetCachedObject(string cacheKey)
 		{
-			return _table.ContainsKey(cacheKey) ? _table[cacheKey] : new MemoryCacheEntry();
+			return _table.ContainsKey(cacheKey) ? _table[cacheKey].EnsureCorrectness() : new MemoryCacheEntry();
 		}
 
 		/// <inheritdoc />
 		public virtual void SetCachedObject(string cacheKey, object data, int duration)
 		{
-			if (data == null)
-			{
-				data = NullReference;
-			}
-
 			var entry = new MemoryCacheEntry(data, duration);
 
 			_table[cacheKey] = entry;

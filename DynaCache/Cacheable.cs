@@ -3,7 +3,7 @@
 // All rights reserved.
 #endregion
 
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace DynaCache
 {
@@ -14,6 +14,7 @@ namespace DynaCache
 	using System.Reflection;
 	using System.Reflection.Emit;
 	using System.Text;
+	using System.Threading.Tasks;
 
 	/// <summary>
 	/// Cacheable provides the ability to create a dynamic cache proxy type for a class.
@@ -159,7 +160,7 @@ namespace DynaCache
 					//method is not accessible for our proxy method
 					//so we can either cache the delegate itself, pass it to proxy and Invoke there, which I'm apparently too lazy to do
 					//or create wrapper with public method which will call invoke for us
-					var converterType = Module.DefineType(String.Format("DynaCache_{0}_StringConverter", typeof(T).FullName.Replace('.', '_')), TypeAttributes.Abstract | TypeAttributes.Sealed);
+					var converterType = Module.DefineType(String.Format("DynaCache_{0}_StringConverter", CreateSafeStringForMethodAndTypeName(typeof(T).FullName)), TypeAttributes.Abstract | TypeAttributes.Sealed);
 					var delegateField = converterType.DefineField("_delegate", typeof (Func<T, string>),
 						FieldAttributes.Public | FieldAttributes.Static);
 
@@ -502,7 +503,7 @@ namespace DynaCache
 
 			for (var i = 0; i < methodParams.Length; i++)
 			{
-				cacheKeyTemplate.Append(".{").Append(i);
+				cacheKeyTemplate.Append("_{").Append(i);
 				string format;
 				if (TypeFormats.TryGetValue(methodParams[i].ParameterType, out format))
 				{
@@ -524,7 +525,7 @@ namespace DynaCache
 		{
 			// ReSharper disable once PossibleNullReferenceException -- not null by design
 			// we're doing a lot of Replace's to make type fit into our module without creating another namespace
-			return String.Format("{0}_{1}", methodInfo.DeclaringType.FullName.Replace('.', '_'), methodInfo.ToString().Replace('(', '_').Replace(')', '_').Replace('.', '_')).Replace(' ', '_');
+			return String.Format("{0}_{1}", CreateSafeStringForMethodAndTypeName(methodInfo.DeclaringType.FullName), CreateSafeStringForMethodAndTypeName(methodInfo.ToString()));
 		}
 
 		/// <summary>
@@ -542,9 +543,11 @@ namespace DynaCache
 
 			// ReSharper disable once AssignNullToNotNullAttribute -- definitely not null by design
 			var calleeObject = wrapperType.DefineField("_object", methodInfo.DeclaringType, FieldAttributes.Private);
+
+			// ReSharper disable once PossibleNullReferenceException -- definitely not null by design
 			var parametersAsFields =
 				methodParams.Select(
-					param => wrapperType.DefineField(String.Format("_{0}", param.Name), param.ParameterType, FieldAttributes.Private))
+				param => wrapperType.DefineField(String.Format("_{0}", param.Name), GetConstructedGenericType(param.ParameterType, methodInfo.DeclaringType), FieldAttributes.Private))
 					.ToArray();
 
 			//a constructor to initialize our private fields with passed parameters
@@ -571,7 +574,9 @@ namespace DynaCache
 			//defining method T MethodAction()
 			var method = wrapperType.DefineMethod("MethodAction", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
 
-			method.SetReturnType(methodInfo.ReturnType);
+			var realReturnType = GetConstructedGenericType(methodInfo.ReturnType, methodInfo.DeclaringType);
+
+			method.SetReturnType(realReturnType);
 
 			var methodIl = method.GetILGenerator();
 
@@ -596,7 +601,7 @@ namespace DynaCache
 			//we create method delegate in separate method in this type to make logic of our basic method simplier
 			var methodDelegate = wrapperType.DefineMethod("GetMethodActionDelegate", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot);
 
-			var delegateType = typeof (Func<>).MakeGenericType(method.ReturnType);
+			var delegateType = typeof(Func<>).MakeGenericType(realReturnType);
 
 			methodDelegate.SetReturnType(delegateType);
 
@@ -613,6 +618,15 @@ namespace DynaCache
 			wrapperType.CreateType();
 
 			return Tuple.Create((ConstructorInfo)constructor, (MethodInfo)methodDelegate);
+		}
+
+		private static Type GetConstructedGenericType(Type possiblyOpenType, Type declaringType)
+		{
+			return possiblyOpenType.IsGenericTypeDefinition
+				? possiblyOpenType.MakeGenericType(declaringType.GetGenericArguments())
+				: possiblyOpenType.IsGenericParameter
+					? declaringType.GetGenericArguments()[possiblyOpenType.GenericParameterPosition]
+					: possiblyOpenType;
 		}
 
 		/// <summary>
@@ -723,6 +737,11 @@ namespace DynaCache
 			renewerType.CreateType();
 		}
 
+		private static string CreateSafeStringForMethodAndTypeName(string input)
+		{
+			return MethodNameProhibitedSymbolsPattern.Replace(input, "_");
+		}
+
 		private static readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>
 																{
 																	{ typeof(DateTime), ":O" },
@@ -730,6 +749,8 @@ namespace DynaCache
 																	{ typeof(DateTimeOffset), ":O" },
 																	{ typeof(DateTimeOffset?), ":O" }
 																};
+
+		private static readonly Regex MethodNameProhibitedSymbolsPattern = new Regex("[\\(\\)\\.\\[\\]\\-:=,` ]");
 
 		#region pre-loaded MethodInfos
 

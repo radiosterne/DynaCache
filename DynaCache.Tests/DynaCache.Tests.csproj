@@ -60,7 +60,6 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="CallingCachedMethod.cs" />
-    <Compile Include="AspNetCacheServiceTests.cs" />
     <Compile Include="CustomConvertersTest.cs" />
     <Compile Include="MemoryCacheServiceTests.cs" />
     <Compile Include="TestClasses\BasicCustomConverterTester.cs" />
@@ -80,10 +79,6 @@
     <Compile Include="TestClasses\ToStringableTester.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DynaCache.AspNetCache\DynaCache.AspNetCache.csproj">
-      <Project>{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}</Project>
-      <Name>DynaCache.AspNetCache</Name>
-    </ProjectReference>
     <ProjectReference Include="..\DynaCache.MemoryCache\DynaCache.MemoryCache.csproj">
       <Project>{37A75E49-01D3-4AC5-BAB9-CE31EA518859}</Project>
       <Name>DynaCache.MemoryCache</Name>
