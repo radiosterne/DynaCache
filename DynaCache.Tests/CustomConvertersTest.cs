@@ -12,7 +12,7 @@ namespace DynaCache.Tests
 		{
 			Func<Exception, string> converter = e => e.Message;
 
-			Cacheable.AddCustomConverter<Exception>(ExceptionConverter);
+			Cacheable.AddCustomConverter(converter);
 
 			const string testString1 = "TestString1";
 			const string testString2 = "TestString2";
@@ -29,11 +29,6 @@ namespace DynaCache.Tests
 			result = instance.GetMessage(new Exception(testString2));
 
 			Assert.AreEqual(testString2, result);
-		}
-
-		public static string ExceptionConverter(Exception e)
-		{
-			return e.Message;
 		}
 	}
 }

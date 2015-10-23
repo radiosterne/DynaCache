@@ -147,7 +147,39 @@ namespace DynaCache
 		{
 			lock (SyncLock)
 			{
-				CustomConverters.Add(typeof(T), converter.Method);
+				var methodInfo = converter.Method;
+				if (methodInfo.IsPublic)
+				{
+					//if underlying method is public, cache it right away
+					CustomConverters.Add(typeof (T), converter.GetMethodInfo());
+				}
+				else
+				{
+					//here's a tricky part:
+					//method is not accessible for our proxy method
+					//so we can either cache the delegate itself, pass it to proxy and Invoke there, which I'm apparently too lazy to do
+					//or create wrapper with public method which will call invoke for us
+					var converterType = Module.DefineType(String.Format("DynaCache_{0}_StringConverter", typeof(T).FullName.Replace('.', '_')), TypeAttributes.Abstract | TypeAttributes.Sealed);
+					var delegateField = converterType.DefineField("_delegate", typeof (Func<T, string>),
+						FieldAttributes.Public | FieldAttributes.Static);
+
+					var invokeMethod = converterType.DefineMethod("CallDelegate",
+						MethodAttributes.Static| MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot, typeof (string),
+						new[] {typeof (T)});
+
+					var invokeMethodGenerator = invokeMethod.GetILGenerator();
+					invokeMethodGenerator.Emit(OpCodes.Ldsfld, delegateField);
+					invokeMethodGenerator.Emit(OpCodes.Ldarg_0);
+					invokeMethodGenerator.Emit(OpCodes.Callvirt, typeof (Func<T, string>).GetMethod("Invoke"));
+					invokeMethodGenerator.Emit(OpCodes.Ret);
+
+					var createdConverterType = converterType.CreateType();
+					//we can not call delegateField.SetValue(null, converter), it's not currently supported
+					//retrieving field again from type and setting
+					createdConverterType.GetField("_delegate").SetValue(null, converter);
+
+					CustomConverters.Add(typeof (T), invokeMethod);
+				}
 			}
 		}
 
