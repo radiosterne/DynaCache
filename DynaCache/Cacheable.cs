@@ -9,7 +9,6 @@ namespace DynaCache
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Linq;
 	using System.Reflection;
 	using System.Reflection.Emit;
@@ -407,20 +406,9 @@ namespace DynaCache
 			//calling method to return us delegate
 			il.Emit(OpCodes.Call, methodActionWrapperConstructorAndDelegate.Item2);
 
-			//GetMethod does not handle generic methods properly, soooo let's do magic
-			// ReSharper disable UseCollectionCountProperty -- can not use extension methods here
-			var runMethod = typeof (Task).GetMethods(BindingFlags.Static | BindingFlags.Public)
-				.Where(m => m.Name == "Run" && 
-							m.IsGenericMethodDefinition && 
-							m.GetGenericArguments().Count() == 1 && 
-							m.GetParameters().Count() == 1 &&
-							m.GetParameters()[0].ParameterType.GetGenericArguments()[0].BaseType != typeof(Task))
-				.ToArray()[0]
-				.MakeGenericMethod(method.ReturnType);
-			// ReSharper restore UseCollectionCountProperty
-
 			//calling Task.Run with our method action wrapper delegate
-			il.EmitCall(OpCodes.Call, runMethod, null);
+			il.EmitCall(OpCodes.Call, TaskRun
+				.MakeGenericMethod(method.ReturnType), null);
 
 			//now we have our task on stack,
 			//so attaching continuation to it
@@ -432,14 +420,8 @@ namespace DynaCache
 			//Get delegate from renewer
 			il.Emit(OpCodes.Call, RenewWrapperGetRenewerWrapperDelegate.MakeGenericMethod(method.ReturnType));
 
-			//another magic to get right ContinueWith override
-			// ReSharper disable once UseCollectionCountProperty -- can not use extension methods here
-			var continueWithMethod = typeof(Task<>).MakeGenericType(method.ReturnType)
-				.GetMethods(BindingFlags.Instance | BindingFlags.Public)
-				.Where(m => m.Name == "ContinueWith" &&
-							m.GetParameters().Count() == 1).ToArray()[0];
 			//call ContinueWith
-			il.Emit(OpCodes.Call, continueWithMethod);
+			il.Emit(OpCodes.Call, GetTypedTaskContinueWith(method.ReturnType));
 
 			//our task is fire-and-forget, so pop return value of ContinueWith from stack
 			il.Emit(OpCodes.Pop);
@@ -556,6 +538,10 @@ namespace DynaCache
 
 			var constructorIl = constructor.GetILGenerator();
 
+			//load this and call Object.ctor()
+			constructorIl.Emit(OpCodes.Ldarg_0);
+			constructorIl.Emit(OpCodes.Call, DefaultObjectConstructorInfo);
+
 			//load this and entry on stack and set field value
 			constructorIl.Emit(OpCodes.Ldarg_0);
 			constructorIl.Emit(OpCodes.Ldarg_1);
@@ -637,9 +623,13 @@ namespace DynaCache
 			//Creating in our dynamic assembly wrapper type
 			//for renewing cache entry state
 			var renewerType = Module.DefineType("CacheEntryRenewerWrapper");
-			var field = renewerType.DefineField("_entry", typeof(MemoryCacheEntry), FieldAttributes.Private);
+			var field = renewerType.DefineField("_entry", typeof(MemoryCacheEntry), FieldAttributes.Private | FieldAttributes.InitOnly);
 			var constructor = renewerType.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new[] { typeof(MemoryCacheEntry) });
 			var constructorIl = constructor.GetILGenerator();
+
+			//load this and call Object.ctor()
+			constructorIl.Emit(OpCodes.Ldarg_0);
+			constructorIl.Emit(OpCodes.Call, DefaultObjectConstructorInfo);
 
 			//load this and entry on stack and set field value
 			constructorIl.Emit(OpCodes.Ldarg_0);
@@ -671,8 +661,8 @@ namespace DynaCache
 			var elseBranchLabel = renewerMethodIl.DefineLabel();
 			//if(task.IsCompleted)
 			renewerMethodIl.Emit(OpCodes.Ldarg_1);
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(Task).GetProperty("IsCompleted", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
-			renewerMethodIl.Emit(OpCodes.Brfalse_S, elseBranchLabel);
+			renewerMethodIl.Emit(OpCodes.Callvirt, TaskIsCompletedGetter);
+			renewerMethodIl.Emit(OpCodes.Brfalse, elseBranchLabel);
 
 			//load entry on stack
 			renewerMethodIl.Emit(OpCodes.Ldarg_0);
@@ -680,10 +670,13 @@ namespace DynaCache
 
 			//load task result on stack
 			renewerMethodIl.Emit(OpCodes.Ldarg_1);
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(Task<>).GetProperty("Result", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true));
+			renewerMethodIl.Emit(OpCodes.Callvirt, TypeBuilder.GetMethod(parameterType, TaskResultGetter));
+
+			//box it to be sure
+			renewerMethodIl.Emit(OpCodes.Box, typebuilder);
 
 			//call Renew on entry with task result
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetMethod("Renew", BindingFlags.Instance | BindingFlags.Public));
+			renewerMethodIl.Emit(OpCodes.Callvirt, MemoryCacheEntryRenew);
 			renewerMethodIl.Emit(OpCodes.Ret);
 
 			// else task failed, should revert entry to stale state
@@ -694,7 +687,7 @@ namespace DynaCache
 			renewerMethodIl.Emit(OpCodes.Ldfld, field);
 
 			//call LoadingFailed
-			renewerMethodIl.Emit(OpCodes.Callvirt, typeof(MemoryCacheEntry).GetMethod("LoadingFailed", BindingFlags.Instance | BindingFlags.Public));
+			renewerMethodIl.Emit(OpCodes.Callvirt, MemoryCacheEntryLoadingFailed);
 
 			renewerMethodIl.Emit(OpCodes.Ret);
 
@@ -713,11 +706,9 @@ namespace DynaCache
 
 			var methodDelegateIl = methodDelegate.GetILGenerator();
 
-			//somehow Action constructor needs this
-			methodDelegateIl.Emit(OpCodes.Ldnull);
 			//loading this into stack and getting pointer to a function
 			methodDelegateIl.Emit(OpCodes.Ldarg_0);
-			methodDelegateIl.Emit(OpCodes.Ldftn, renewerMethod);
+			methodDelegateIl.Emit(OpCodes.Ldftn, renewerMethod.MakeGenericMethod(delegateTypeBuilder));
 
 			//to get constructor of our delegate we first need to get constructor of it's open type...
 			var openTypeConstructor = typeof(Action<>).GetConstructors()[0];
@@ -770,6 +761,41 @@ namespace DynaCache
 
 		private static readonly MethodInfo MemoryCacheEntryCalueGetter =
 			typeof(MemoryCacheEntry).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
+		private static readonly MethodInfo MemoryCacheEntryLoadingFailed = typeof(MemoryCacheEntry).GetMethod("LoadingFailed", BindingFlags.Instance | BindingFlags.Public);
+
+		private static readonly MethodInfo MemoryCacheEntryRenew = typeof (MemoryCacheEntry).GetMethod("Renew",
+			BindingFlags.Instance | BindingFlags.Public);
+
+		private static readonly MethodInfo TaskIsCompletedGetter =
+			typeof (Task).GetProperty("IsCompleted", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
+		private static readonly MethodInfo TaskResultGetter =
+			typeof (Task<>).GetProperty("Result", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
+		//GetMethod does not handle generic methods properly, soooo let's do magic
+		// ReSharper disable UseCollectionCountProperty -- can not use extension methods here
+		private static readonly MethodInfo TaskRun = typeof (Task).GetMethods(BindingFlags.Static | BindingFlags.Public)
+			.Where(m => m.Name == "Run" &&
+						m.IsGenericMethodDefinition &&
+						m.GetGenericArguments().Count() == 1 &&
+						m.GetParameters().Count() == 1 &&
+						 m.GetParameters()[0].ParameterType.GetGenericArguments()[0].BaseType != typeof (Task))
+			.ToArray()[0];
+
+		//another magic to get right ContinueWith override
+		private static MethodInfo GetTypedTaskContinueWith(Type t)
+		{
+			return typeof(Task<>).MakeGenericType(t).GetMethods(BindingFlags.Instance | BindingFlags.Public)
+				.Where(m => m.Name == "ContinueWith" &&
+							m.GetParameters().Count() == 1).ToArray()[0];
+		}
+
+		// ReSharper restore UseCollectionCountProperty
+
+
+
+		private static readonly ConstructorInfo DefaultObjectConstructorInfo = typeof(object).GetConstructors()[0];
 
 		private static readonly ConstructorInfo RenewWrapperConstructor;
 

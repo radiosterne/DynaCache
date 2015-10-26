@@ -1,4 +1,4 @@
-﻿#region Copyright 2012 Mike Goatly
+﻿#region Copyright 2012 Mike Goatly, 2015 Andrey Kurnoskin
 // This source is subject to the the MIT License (MIT)
 // All rights reserved.
 #endregion
@@ -82,7 +82,7 @@ namespace DynaCache.Tests
 
 			var instance = (IGenericTester<int>)Activator.CreateInstance(cacheableType, cacheService.Object);
 
-			var result = "Blah";
+			const string result = "Blah";
 			cacheService.Setup(s => s.TryGetCachedObject(keyName)).Returns(new MemoryCacheEntry(result, 1000));
 
 			var response = instance.Convert(199);

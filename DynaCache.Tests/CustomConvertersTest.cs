@@ -18,7 +18,6 @@ namespace DynaCache.Tests
 			const string testString2 = "TestString2";
 			var cacheService = new MemoryCacheService();
 			var cacheableType = Cacheable.CreateType<BasicCustomConverterTester>();
-			Cacheable.SaveAssembly();
 
 			var instance = (BasicCustomConverterTester)Activator.CreateInstance(cacheableType, cacheService);
 

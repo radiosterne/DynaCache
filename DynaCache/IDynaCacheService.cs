@@ -30,27 +30,52 @@ namespace DynaCache
 		void SetCachedObject(string cacheKey, object data, int duration);
 	}
 
+	/// <summary>
+	/// Internal representation of value stored in cache
+	/// </summary>
+	/// <remarks>
+	/// The only reason it's not, in fact, internal, is because it's used in
+	/// dynamic built library
+	/// </remarks>
 	public class MemoryCacheEntry
 	{
+		/// <summary>
+		/// Creates new cache entry with expriation timeout and specified value, in Actual state
+		/// </summary>
+		/// <param name="value">Object to cache.</param>
+		/// <param name="expirationTimeSeconds">Caching expiration timeout.</param>
 		public MemoryCacheEntry(object value, int expirationTimeSeconds)
 		{
 			_expirationTimeSeconds = expirationTimeSeconds;
 			Renew(value);
 		}
 
+		/// <summary>
+		/// Creates new cache entry denoting a non-existent cache entry
+		/// </summary>
 		public MemoryCacheEntry()
 		{
 			State = CacheServiceEntryState.NotFound;
 		}
 
+		/// <summary>
+		/// Cached value
+		/// </summary>
 		public object Value { get; private set; }
 
 		private readonly int _expirationTimeSeconds;
 
-		public DateTime ExpirationTime { get; private set; }
+		private DateTime _expirationTime;
 
+		/// <summary>
+		/// Current entry state
+		/// </summary>
 		public CacheServiceEntryState State { get; private set; }
 
+		/// <summary>
+		/// Gets an exclusive lock to allow asynchronous loading of a new value
+		/// </summary>
+		/// <returns></returns>
 		public bool GetLoadingLock()
 		{
 			lock (this)
@@ -62,16 +87,23 @@ namespace DynaCache
 			}
 		}
 
+		/// <summary>
+		/// Sets new value
+		/// </summary>
+		/// <param name="value"></param>
 		public void Renew(object value)
 		{
 			lock (this)
 			{
 				Value = value;
-				ExpirationTime = DateTime.UtcNow.AddSeconds(_expirationTimeSeconds);
+				_expirationTime = DateTime.UtcNow.AddSeconds(_expirationTimeSeconds);
 				State = CacheServiceEntryState.Actual;
 			}
 		}
 
+		/// <summary>
+		/// Drops exclusive loading lock and makes entry available for re-loading again
+		/// </summary>
 		public void LoadingFailed()
 		{
 			lock (this)
@@ -80,23 +112,44 @@ namespace DynaCache
 			}
 		}
 
+		/// <summary>
+		/// Changes entry state based on expiration timeout
+		/// </summary>
+		/// <returns>An entry on which it was called.</returns>
 		public MemoryCacheEntry EnsureCorrectness()
 		{
 			lock (this)
 			{
-				if(State == CacheServiceEntryState.Actual && DateTime.UtcNow > ExpirationTime)
+				if (State == CacheServiceEntryState.Actual && DateTime.UtcNow > _expirationTime)
 					State = CacheServiceEntryState.Stale;
 			}
 			return this;
 		}
 	}
 
+	/// <summary>
+	/// Possible cache entry states
+	/// </summary>
+	/// /// <remarks>
+	/// Order of elements in this enum is important for creating proxy method
+	/// </remarks>
 	public enum CacheServiceEntryState
 	{
-		//Order of elements in this enum is important for creating proxy method
-		Actual,
-		Loading,
-		Stale,
-		NotFound
+		/// <summary>
+		/// Cache entry is not expired yet
+		/// </summary>
+		Actual = 0,
+		/// <summary>
+		/// New value loading task has been launched, but has not been completed
+		/// </summary>
+		Loading = 1,
+		/// <summary>
+		/// Cache entry expired, but no one launched loading yet
+		/// </summary>
+		Stale = 2,
+		/// <summary>
+		/// Cache miss
+		/// </summary>
+		NotFound = 3
 	}
 }

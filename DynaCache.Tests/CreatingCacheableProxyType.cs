@@ -1,4 +1,4 @@
-﻿#region Copyright 2012 Mike Goatly
+﻿#region Copyright 2012 Mike Goatly, 2015 Andrey Kurnoskin
 // This source is subject to the the MIT License (MIT)
 // All rights reserved.
 #endregion
