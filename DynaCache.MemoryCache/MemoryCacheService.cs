@@ -25,9 +25,15 @@ namespace DynaCache
 		/// <inheritdoc />
 		public virtual void SetCachedObject(string cacheKey, object data, int duration)
 		{
-			var entry = new MemoryCacheEntry(data, duration);
+			var entry = new MemoryCacheEntry(data, duration, cacheKey);
 
 			_table[cacheKey] = entry;
+		}
+
+		public void RemoveObject(string cacheKey)
+		{
+			MemoryCacheEntry val;
+			_table.TryRemove(cacheKey, out val);
 		}
 
 		/// <summary>

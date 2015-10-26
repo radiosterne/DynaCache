@@ -28,6 +28,12 @@ namespace DynaCache
 		/// <param name="data">The data to store against the key.</param>
 		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
 		void SetCachedObject(string cacheKey, object data, int duration);
+
+		/// <summary>
+		/// Removes object from cache
+		/// </summary>
+		/// <param name="cacheKey">Cache key</param>
+		void RemoveObject(string cacheKey);
 	}
 
 	/// <summary>
@@ -44,9 +50,11 @@ namespace DynaCache
 		/// </summary>
 		/// <param name="value">Object to cache.</param>
 		/// <param name="expirationTimeSeconds">Caching expiration timeout.</param>
-		public MemoryCacheEntry(object value, int expirationTimeSeconds)
+		/// <param name="cacheKey">Key to cache value against</param>
+		public MemoryCacheEntry(object value, int expirationTimeSeconds, string cacheKey)
 		{
 			_expirationTimeSeconds = expirationTimeSeconds;
+			_key = cacheKey;
 			Renew(value);
 		}
 
@@ -65,12 +73,19 @@ namespace DynaCache
 
 		private readonly int _expirationTimeSeconds;
 
+		private readonly string _key;
+
 		private DateTime _expirationTime;
 
 		/// <summary>
 		/// Current entry state
 		/// </summary>
 		public CacheServiceEntryState State { get; private set; }
+
+		/// <summary>
+		/// An exception from asynchrous loading operation
+		/// </summary>
+		public Exception LoadingException { get; private set; }
 
 		/// <summary>
 		/// Gets an exclusive lock to allow asynchronous loading of a new value
@@ -113,6 +128,19 @@ namespace DynaCache
 		}
 
 		/// <summary>
+		/// Marks entry as failed to load and saves an exception for throwing it later
+		/// </summary>
+		/// <param name="ex">An exception from asynchrous loading operation</param>
+		public void LoadingError(Exception ex)
+		{
+			lock (this)
+			{
+				State = CacheServiceEntryState.ErrorLoading;
+				LoadingException = ex;
+			}
+		}
+
+		/// <summary>
 		/// Changes entry state based on expiration timeout
 		/// </summary>
 		/// <returns>An entry on which it was called.</returns>
@@ -124,6 +152,14 @@ namespace DynaCache
 					State = CacheServiceEntryState.Stale;
 			}
 			return this;
+		}
+
+		public void Remove(IDynaCacheService service)
+		{
+			lock (this)
+			{
+				service.RemoveObject(_key);
+			}
 		}
 	}
 
@@ -148,8 +184,12 @@ namespace DynaCache
 		/// </summary>
 		Stale = 2,
 		/// <summary>
+		/// On last loading, an exception occured
+		/// </summary>
+		ErrorLoading = 3,
+		/// <summary>
 		/// Cache miss
 		/// </summary>
-		NotFound = 3
+		NotFound = 4
 	}
 }

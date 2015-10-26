@@ -83,7 +83,7 @@ namespace DynaCache.Tests
 			var instance = (IGenericTester<int>)Activator.CreateInstance(cacheableType, cacheService.Object);
 
 			const string result = "Blah";
-			cacheService.Setup(s => s.TryGetCachedObject(keyName)).Returns(new MemoryCacheEntry(result, 1000));
+			cacheService.Setup(s => s.TryGetCachedObject(keyName)).Returns(new MemoryCacheEntry(result, 1000, keyName));
 
 			var response = instance.Convert(199);
 

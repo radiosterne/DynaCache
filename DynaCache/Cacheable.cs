@@ -3,6 +3,7 @@
 // All rights reserved.
 #endregion
 
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace DynaCache
@@ -369,8 +370,10 @@ namespace DynaCache
 			// 0 == Actual
 			// 1 == Loading
 			// 2 == Stale
+			// 3 == ErrorLoading
 			var switchLabels = new[]
 			{
+				il.DefineLabel(),
 				il.DefineLabel(),
 				il.DefineLabel(),
 				il.DefineLabel()
@@ -385,8 +388,24 @@ namespace DynaCache
 			//switch table or jumping to default label
 			il.Emit(OpCodes.Switch, switchLabels);
 			il.Emit(OpCodes.Br, defaultLabel);
+
+			//previous loading failed — remove entry from cache
+			//and throw exception «outside»
+			il.MarkLabel(switchLabels[3]);
+
+			//removing value from underlying cache service to load it properly next time
+			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
+			il.Emit(OpCodes.Ldarg_0);
+			il.Emit(OpCodes.Ldfld, cacheServiceField);
+			il.Emit(OpCodes.Callvirt, MemoryCacheEntryRemove);
+
+			//get the exception, wrap it and throw it
+			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
+			il.Emit(OpCodes.Callvirt, MemoryCacheEntryLoadingExceptionGetter);
+			il.Emit(OpCodes.Newobj, DynaCacheAsynchronousLoadingExceptionConstructorInfo);
+			il.Emit(OpCodes.Throw);
 			
-			//hard case — before returning value, initiate asynchronous loading
+			//stale case — before returning value, initiate asynchronous loading
 			il.MarkLabel(switchLabels[2]);
 
 			//try get loading lock
@@ -431,7 +450,7 @@ namespace DynaCache
 			il.MarkLabel(switchLabels[1]);
 
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			il.Emit(OpCodes.Callvirt, MemoryCacheEntryCalueGetter);
+			il.Emit(OpCodes.Callvirt, MemoryCacheEntryValueGetter);
 			il.Emit(returnValueLocal.LocalType.IsClass ? OpCodes.Castclass : OpCodes.Unbox_Any, returnValueLocal.LocalType);
 			il.Emit(OpCodes.Ret);
 
@@ -658,11 +677,13 @@ namespace DynaCache
 
 			var renewerMethodIl = renewerMethod.GetILGenerator();
 
-			var elseBranchLabel = renewerMethodIl.DefineLabel();
+			var notCompletedLabel = renewerMethodIl.DefineLabel();
+
+			var notFaultedLabel = renewerMethodIl.DefineLabel();
 			//if(task.IsCompleted)
 			renewerMethodIl.Emit(OpCodes.Ldarg_1);
 			renewerMethodIl.Emit(OpCodes.Callvirt, TaskIsCompletedGetter);
-			renewerMethodIl.Emit(OpCodes.Brfalse, elseBranchLabel);
+			renewerMethodIl.Emit(OpCodes.Brfalse, notCompletedLabel);
 
 			//load entry on stack
 			renewerMethodIl.Emit(OpCodes.Ldarg_0);
@@ -679,8 +700,29 @@ namespace DynaCache
 			renewerMethodIl.Emit(OpCodes.Callvirt, MemoryCacheEntryRenew);
 			renewerMethodIl.Emit(OpCodes.Ret);
 
-			// else task failed, should revert entry to stale state
-			renewerMethodIl.MarkLabel(elseBranchLabel);
+			// else task cancelled or faulted
+			renewerMethodIl.MarkLabel(notCompletedLabel);
+
+			//if(task.IsFaulted)
+			//mark entry as faulted and pass an exception to it
+			renewerMethodIl.Emit(OpCodes.Ldarg_1);
+			renewerMethodIl.Emit(OpCodes.Callvirt, TaskIsFaultedGetter);
+			renewerMethodIl.Emit(OpCodes.Brfalse, notFaultedLabel);
+
+			//load entry on stack
+			renewerMethodIl.Emit(OpCodes.Ldarg_0);
+			renewerMethodIl.Emit(OpCodes.Ldfld, field);
+			
+			//load exception on stack
+			renewerMethodIl.Emit(OpCodes.Ldarg_1);
+			renewerMethodIl.Emit(OpCodes.Callvirt, TaskExceptionGetter);
+
+			//call LoadingError on entry with task exception
+			renewerMethodIl.Emit(OpCodes.Callvirt, MemoryCacheEntryLoadingError);
+			renewerMethodIl.Emit(OpCodes.Ret);
+
+			// else task cancelled, should revert entry to stale state
+			renewerMethodIl.MarkLabel(notFaultedLabel);
 
 			//load entry on stack
 			renewerMethodIl.Emit(OpCodes.Ldarg_0);
@@ -759,10 +801,17 @@ namespace DynaCache
 
 		private static readonly MethodInfo MemoryCacheEntryGetLoadingLock = typeof(MemoryCacheEntry).GetMethod("GetLoadingLock");
 
-		private static readonly MethodInfo MemoryCacheEntryCalueGetter =
+		private static readonly MethodInfo MemoryCacheEntryValueGetter =
 			typeof(MemoryCacheEntry).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
 
+		private static readonly MethodInfo MemoryCacheEntryLoadingExceptionGetter =
+			typeof(MemoryCacheEntry).GetProperty("LoadingException", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
 		private static readonly MethodInfo MemoryCacheEntryLoadingFailed = typeof(MemoryCacheEntry).GetMethod("LoadingFailed", BindingFlags.Instance | BindingFlags.Public);
+
+		private static readonly MethodInfo MemoryCacheEntryLoadingError = typeof(MemoryCacheEntry).GetMethod("LoadingError", BindingFlags.Instance | BindingFlags.Public);
+
+		private static readonly MethodInfo MemoryCacheEntryRemove = typeof(MemoryCacheEntry).GetMethod("Remove", BindingFlags.Instance | BindingFlags.Public);
 
 		private static readonly MethodInfo MemoryCacheEntryRenew = typeof (MemoryCacheEntry).GetMethod("Renew",
 			BindingFlags.Instance | BindingFlags.Public);
@@ -770,8 +819,14 @@ namespace DynaCache
 		private static readonly MethodInfo TaskIsCompletedGetter =
 			typeof (Task).GetProperty("IsCompleted", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
 
+		private static readonly MethodInfo TaskIsFaultedGetter =
+			typeof(Task).GetProperty("IsFaulted", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
 		private static readonly MethodInfo TaskResultGetter =
 			typeof (Task<>).GetProperty("Result", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
+
+		private static readonly MethodInfo TaskExceptionGetter =
+			typeof(Task).GetProperty("Exception", BindingFlags.Instance | BindingFlags.Public).GetGetMethod(true);
 
 		//GetMethod does not handle generic methods properly, soooo let's do magic
 		// ReSharper disable UseCollectionCountProperty -- can not use extension methods here
@@ -793,9 +848,9 @@ namespace DynaCache
 
 		// ReSharper restore UseCollectionCountProperty
 
-
-
 		private static readonly ConstructorInfo DefaultObjectConstructorInfo = typeof(object).GetConstructors()[0];
+
+		private static readonly ConstructorInfo DynaCacheAsynchronousLoadingExceptionConstructorInfo = typeof(DynaCacheAsynchronousLoadingException).GetConstructor(new[] { typeof(Exception) });
 
 		private static readonly ConstructorInfo RenewWrapperConstructor;
 

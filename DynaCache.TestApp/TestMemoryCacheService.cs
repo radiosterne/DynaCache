@@ -56,6 +56,11 @@ namespace DynaCache.TestApp
 			_cache.SetCachedObject(cacheKey, data, duration);
 		}
 
+		public void RemoveObject(string cacheKey)
+		{
+			_cache.RemoveObject(cacheKey);
+		}
+
 		private static void NotifyState(ConsoleColor color, string message, params object[] args)
 		{
 			Console.ForegroundColor = color;

@@ -56,6 +56,7 @@
     <Compile Include="CacheableMethodAttribute.cs" />
     <Compile Include="CacheDuration.cs" />
     <Compile Include="CacheDurationCollection.cs" />
+    <Compile Include="DynaCacheAsynchronousLoadingException.cs" />
     <Compile Include="ToStringableAttribute.cs" />
     <Compile Include="DynaCacheSection.cs" />
     <Compile Include="DynaCacheException.cs" />
