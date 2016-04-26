@@ -22,7 +22,7 @@ namespace DynaCache.Tests.TestClasses
 			return 11;
 		}
 
-		public object Execute(string data)
+		public string[] Execute(string data)
 		{
 			return new[] { data };
 		}

@@ -23,7 +23,7 @@ namespace DynaCache.Tests.TestClasses
 		}
 
 		[CacheableMethod(100)]
-		public virtual object Execute(string data)
+		public virtual string[] Execute(string data)
 		{
 			return new[] { data };
 		}

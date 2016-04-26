@@ -17,7 +17,7 @@ namespace DynaCache.Tests.TestClasses
 
 		int Execute(DateTime data);
 
-		object Execute(string data);
+		string[] Execute(string data);
 
 		List<string> Execute(int data1, object data2);
 	}

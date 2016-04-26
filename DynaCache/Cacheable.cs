@@ -445,15 +445,12 @@ namespace DynaCache
 			il.Emit(OpCodes.Ldfld, cacheServiceField);
 			il.Emit(OpCodes.Ldloc, cacheKeyLocal);
 			il.Emit(OpCodes.Ldloc, returnValueLocal);
-			// ReSharper disable once PossibleNullReferenceException -- not null
-			if (!returnValueLocal.LocalType.IsClass)
-			{
-				il.Emit(OpCodes.Box, returnValueLocal.LocalType);
-			}
-
 			il.Emit(OpCodes.Ldc_I4, cacheParams.CacheSeconds);
 
-			il.EmitCall(OpCodes.Callvirt, typeof(IDynaCacheService).GetMethod("SetCachedObject"), null);
+			var methodInfo = typeof(IDynaCacheService)
+				.GetMethod("SetCachedObject")
+				.MakeGenericMethod(returnValueLocal.LocalType);
+			il.EmitCall(OpCodes.Callvirt, methodInfo, null);
 		}
 	}
 }
