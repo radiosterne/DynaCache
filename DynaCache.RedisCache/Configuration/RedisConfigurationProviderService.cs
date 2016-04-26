@@ -8,7 +8,7 @@ using StackExchange.Redis;
 
 namespace DynaCache.RedisCache.Configuration
 {
-	internal class AppConfigRedisConfigurationProviderService : IRedisConfigurationProviderService
+	internal class RedisConfigurationProviderService : IRedisConfigurationProviderService
 	{
 		private const string RedisSectionName = "redis";
 
@@ -16,7 +16,7 @@ namespace DynaCache.RedisCache.Configuration
 
 		private readonly RedisConfiguration _redisSection;
 
-		public AppConfigRedisConfigurationProviderService()
+		public RedisConfigurationProviderService()
 		{
 			_redisSection = (RedisConfiguration)ConfigurationManager.GetSection(RedisSectionName);
 		}

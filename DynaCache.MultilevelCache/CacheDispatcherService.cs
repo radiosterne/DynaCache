@@ -23,7 +23,11 @@ namespace DynaCache.MultilevelCache
 		private readonly uint _currentCacheVersion;
 		private readonly uint _previousCacheVersion;
 
-		public CacheDispatcherService(ICacheConfigurationProviderService configurationProviderService)
+		public CacheDispatcherService(IDynaCacheService[] implementations)
+			: this(new CacheConfigurationProviderService(implementations))
+		{ }
+
+		internal CacheDispatcherService(ICacheConfigurationProviderService configurationProviderService)
 		{
 			_cacheServices = configurationProviderService.GetCachingServices();
 			_currentCacheVersion = configurationProviderService.GetCurrentCacheVersion();

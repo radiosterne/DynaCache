@@ -12,7 +12,7 @@ using NLog.Extension;
 
 namespace DynaCache.MultilevelCache.Configuration
 {
-	internal class AppConfigCacheConfigurationProviderService : ICacheConfigurationProviderService
+	internal class CacheConfigurationProviderService : ICacheConfigurationProviderService
 	{
 		private const string CacheDispatcherSectionName = "cacheDispatcher";
 
@@ -21,7 +21,7 @@ namespace DynaCache.MultilevelCache.Configuration
 
 		private readonly IDynaCacheService[] _leveledCacheServiceImplementations;
 
-		public AppConfigCacheConfigurationProviderService(IDynaCacheService[] leveledCacheServiceImplementations)
+		public CacheConfigurationProviderService(IDynaCacheService[] leveledCacheServiceImplementations)
 		{
 			_cdSection = (CacheDispatcherConfiguration)ConfigurationManager.GetSection(CacheDispatcherSectionName);
 			_leveledCacheServiceImplementations = leveledCacheServiceImplementations;

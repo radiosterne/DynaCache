@@ -64,7 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CacheDispatcherService.cs" />
-    <Compile Include="Configuration\AppConfigCacheConfigurationProviderService.cs" />
+    <Compile Include="Configuration\CacheConfigurationProviderService.cs" />
     <Compile Include="Configuration\CacheDispatcher\CacheDispatcherConfiguration.cs" />
     <Compile Include="Configuration\CacheDispatcher\CachingService.cs" />
     <Compile Include="Configuration\CacheDispatcher\CachingServices.cs" />

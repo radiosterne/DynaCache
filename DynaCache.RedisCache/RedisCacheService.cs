@@ -1,17 +1,22 @@
 ﻿using System;
+using DynaCache.RedisCache.Configuration;
 using DynaCache.RedisCache.Internals;
 using NLog;
 using NLog.Extension;
 
 namespace DynaCache.RedisCache
 {
-	internal class RedisLeveledCacheService : IDynaCacheService
+	internal class RedisCacheService : IDynaCacheService
 	{
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 		private readonly IRedisService _redisService;
 		private readonly ICacheSerializer _serializer;
 
-		public RedisLeveledCacheService(IRedisService redisService, ICacheSerializer serializer)
+		public RedisCacheService()
+			: this(new RedisService(new RedisConfigurationProviderService()), new ProtobufCacheSerializer())
+		{ }
+
+		internal RedisCacheService(IRedisService redisService, ICacheSerializer serializer)
 		{
 			_redisService = redisService;
 			_serializer = serializer;
