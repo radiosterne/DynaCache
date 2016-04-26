@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 14
+VisualStudioVersion = 14.0.25123.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache", "DynaCache\DynaCache.csproj", "{F4EE6A5E-A9EC-4119-A8E3-A1D270732D0D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.Tests", "DynaCache.Tests\DynaCache.Tests.csproj", "{A6480115-F526-44BA-BCAF-0223C3425B1F}"
@@ -25,28 +27,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{B2CEDB6F
 		Nuget\PackageContents\Revison history.txt = Nuget\PackageContents\Revison history.txt
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.MultilevelCache", "DynaCache.MultilevelCache\DynaCache.MultilevelCache.csproj", "{F603301D-977A-4BA2-8B09-70F2B645A12E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynaCache.RedisCache", "DynaCache.RedisCache\DynaCache.RedisCache.csproj", "{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NLog.Extension", "NLog.Extension\NLog.Extension.csproj", "{3ABC04DB-454F-4543-99E3-84BF6875DA95}"
+EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 6
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs06
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = DynaCache.TestApp\\DynaCache.TestApp.csproj
-		SccProjectName1 = DynaCache.TestApp
-		SccLocalPath1 = DynaCache.TestApp
-		SccProjectUniqueName2 = DynaCache.Tests\\DynaCache.Tests.csproj
-		SccProjectName2 = DynaCache.Tests
-		SccLocalPath2 = DynaCache.Tests
-		SccProjectUniqueName3 = DynaCache\\DynaCache.csproj
-		SccProjectName3 = DynaCache
-		SccLocalPath3 = DynaCache
-		SccProjectUniqueName4 = DynaCache.MemoryCache\\DynaCache.MemoryCache.csproj
-		SccProjectName4 = DynaCache.MemoryCache
-		SccLocalPath4 = DynaCache.MemoryCache
-		SccProjectUniqueName5 = DynaCache.AspNetCache\\DynaCache.AspNetCache.csproj
-		SccProjectName5 = DynaCache.AspNetCache
-		SccLocalPath5 = DynaCache.AspNetCache
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -106,6 +93,42 @@ Global
 		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{A3C28BDA-FD00-41F6-973D-2F86E3BA8C7B}.Release|x86.ActiveCfg = Release|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Debug|x86.Build.0 = Debug|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Release|x86.ActiveCfg = Release|Any CPU
+		{F603301D-977A-4BA2-8B09-70F2B645A12E}.Release|x86.Build.0 = Release|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Debug|x86.Build.0 = Debug|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Release|x86.ActiveCfg = Release|Any CPU
+		{1B57BF04-E33F-4DCA-AF58-B02E6EC71130}.Release|x86.Build.0 = Release|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Debug|x86.Build.0 = Debug|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Release|x86.ActiveCfg = Release|Any CPU
+		{3ABC04DB-454F-4543-99E3-84BF6875DA95}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

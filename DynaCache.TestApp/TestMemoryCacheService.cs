@@ -26,11 +26,19 @@ namespace DynaCache.TestApp
 		/// <param name="result">The object that was read from the cache, or null if the key
 		/// could not be found in the cache.</param>
 		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
-		public virtual bool TryGetCachedObject(string cacheKey, out object result)
+		public virtual bool TryGetCachedObject<T>(string cacheKey, out T result)
 		{
+			result = default(T);
 			if (_cache.Contains(cacheKey))
 			{
-				result = _cache[cacheKey];
+				var res = _cache[cacheKey];
+				if (!(res is T))
+				{
+					Console.ForegroundColor = ConsoleColor.DarkRed;
+					Console.WriteLine("invalid cached data type for key {0}", cacheKey);
+					return false;
+				}
+				result = (T)_cache[cacheKey];
 				Console.ForegroundColor = ConsoleColor.DarkGreen;
 				Console.WriteLine("Read {0} from cache key {1}", result, cacheKey);
 				Console.ResetColor();
@@ -39,7 +47,6 @@ namespace DynaCache.TestApp
 
 			Console.ForegroundColor = ConsoleColor.DarkRed;
 			Console.WriteLine("Cache miss for cache key {0}", cacheKey);
-			result = null;
 			return false;
 		}
 
@@ -49,7 +56,7 @@ namespace DynaCache.TestApp
 		/// <param name="cacheKey">The cache key to store the object against.</param>
 		/// <param name="data">The data to store against the key.</param>
 		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
-		public virtual void SetCachedObject(string cacheKey, object data, int duration)
+		public virtual void SetCachedObject<T>(string cacheKey, T data, int duration)
 		{
 			Console.ForegroundColor = ConsoleColor.Green;
 			Console.WriteLine("Caching {0} against {1} for {2}s", data, cacheKey, duration);

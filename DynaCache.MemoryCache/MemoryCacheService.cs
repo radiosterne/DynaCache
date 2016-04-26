@@ -3,11 +3,11 @@
 // All rights reserved.
 #endregion
 
-namespace DynaCache
-{
-	using System;
-	using System.Runtime.Caching;
+using System;
+using MemCache = System.Runtime.Caching.MemoryCache;
 
+namespace DynaCache.MemoryCache
+{
 	/// <summary>
 	/// An implementation of <see cref="IDynaCacheService"/> that uses the .NET 4.0 in-memory cache.
 	/// </summary>
@@ -16,12 +16,12 @@ namespace DynaCache
 		/// <summary>
 		/// An object that represents a cached null value. (MemoryCache does not allow for null values to be cached explicitly.)
 		/// </summary>
-		private static readonly object NullReference = new object();
+		private static readonly object nullReference = new object();
 
 		/// <summary>
 		/// The in-memory cache instance for this service.
 		/// </summary>
-		private readonly MemoryCache _cache = new MemoryCache("CacheService");
+		private readonly MemCache _cache = new MemCache("CacheService");
 
 		/// <summary>
 		/// Tries to get a cached object from the cache using the given cache key.
@@ -30,21 +30,17 @@ namespace DynaCache
 		/// <param name="result">The object that was read from the cache, or null if the key
 		/// could not be found in the cache.</param>
 		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
-		public virtual bool TryGetCachedObject(string cacheKey, out object result)
+		public virtual bool TryGetCachedObject<T>(string cacheKey, out T result)
 		{
-			if (_cache.Contains(cacheKey))
-			{
-				result = _cache[cacheKey];
-				if (Equals(result, NullReference))
-				{
-					result = null;
-				}
-
-				return true;
-			}
-
-			result = null;
-			return false;
+			result = default(T);
+			if (!_cache.Contains(cacheKey))
+				return false;
+			var res = _cache[cacheKey];
+			if (!(res is T))
+				return false;
+			if (!Equals(res, nullReference))
+				result = (T)res;
+			return true;
 		}
 
 		/// <summary>
@@ -53,14 +49,13 @@ namespace DynaCache
 		/// <param name="cacheKey">The cache key to store the object against.</param>
 		/// <param name="data">The data to store against the key.</param>
 		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
-		public virtual void SetCachedObject(string cacheKey, object data, int duration)
+		public virtual void SetCachedObject<T>(string cacheKey, T data, int duration)
 		{
+			// ReSharper disable once ConvertIfStatementToNullCoalescingExpression type conflict
 			if (data == null)
-			{
-				data = NullReference;
-			}
-
-			_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
+				_cache.Add(cacheKey, nullReference, DateTime.Now.AddSeconds(duration));
+			else
+				_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
 		}
 
 		/// <summary>

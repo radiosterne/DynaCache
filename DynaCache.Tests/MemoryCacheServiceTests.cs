@@ -3,6 +3,8 @@
 // All rights reserved.
 #endregion
 
+using DynaCache.MemoryCache;
+
 namespace DynaCache.Tests
 {
 	using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -69,7 +71,7 @@ namespace DynaCache.Tests
 		{
 			var cache = new MemoryCacheService();
 
-			cache.SetCachedObject("key3", null, 1);
+			cache.SetCachedObject<object>("key3", null, 1);
 
 			object result;
 			Assert.IsTrue(cache.TryGetCachedObject("key3", out result));

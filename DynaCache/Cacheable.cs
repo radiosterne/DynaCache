@@ -385,7 +385,10 @@ namespace DynaCache
 			il.Emit(OpCodes.Ldfld, cacheServiceField);
 			il.Emit(OpCodes.Ldloc, cacheKeyLocal);
 			il.Emit(OpCodes.Ldloca_S, cacheOutValueLocal);
-			il.EmitCall(OpCodes.Callvirt, typeof(IDynaCacheService).GetMethod("TryGetCachedObject"), null);
+			var methodInfo = typeof(IDynaCacheService)
+				.GetMethod("TryGetCachedObject")
+				.MakeGenericMethod(returnValueLocal.LocalType);
+			il.EmitCall(OpCodes.Callvirt, methodInfo, null);
 			il.Emit(OpCodes.Ldc_I4_0);
 			il.Emit(OpCodes.Ceq);
 			il.Emit(OpCodes.Brtrue, notInCacheLabel);
