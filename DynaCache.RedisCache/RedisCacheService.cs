@@ -6,7 +6,7 @@ using NLog.Extension;
 
 namespace DynaCache.RedisCache
 {
-	internal class RedisCacheService : IDynaCacheService
+	public class RedisCacheService : IDynaCacheService
 	{
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 		private readonly IRedisService _redisService;

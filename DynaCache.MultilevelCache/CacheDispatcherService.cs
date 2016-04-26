@@ -13,7 +13,7 @@ using NLog.Extension;
 
 namespace DynaCache.MultilevelCache
 {
-	internal class CacheDispatcherService : IDynaCacheService
+	public class CacheDispatcherService : IDynaCacheService
 	{
 		private const string CacheVersionPrefix = ":cache-version:";
 
