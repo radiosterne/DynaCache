@@ -14,7 +14,8 @@ namespace DynaCache.RedisCache
 
 		public RedisCacheService()
 			: this(new RedisService(new RedisConfigurationProviderService()), new ProtobufCacheSerializer())
-		{ }
+		{
+		}
 
 		internal RedisCacheService(IRedisService redisService, ICacheSerializer serializer)
 		{

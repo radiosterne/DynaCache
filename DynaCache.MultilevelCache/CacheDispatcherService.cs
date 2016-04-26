@@ -25,7 +25,8 @@ namespace DynaCache.MultilevelCache
 
 		public CacheDispatcherService(IDynaCacheService[] implementations)
 			: this(new CacheConfigurationProviderService(implementations))
-		{ }
+		{
+		}
 
 		internal CacheDispatcherService(ICacheConfigurationProviderService configurationProviderService)
 		{
