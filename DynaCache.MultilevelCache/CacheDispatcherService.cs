@@ -95,25 +95,18 @@ namespace DynaCache.MultilevelCache
 				logger.Debug($"storing value for key {versionedCacheKey} in cache");
 				Task.Run(() =>
 				{
-					if (!_cacheServices.Any())
-						return;
-					if (lastServiceExpiration.HasValue)
+					using (var iteration = _cacheServices.GetEnumerator())
 					{
-						_cacheServices
-							.Reverse()
-							.Skip(1)
-							.Reverse()
-							.ToList()
-							.ForEach(cs => cs.ServiceInstance.SetCachedObject(versionedCacheKey, value, cs.CacheLifeSpan.Seconds));
-						_cacheServices
-							.Last()
-							.ServiceInstance.SetCachedObject(versionedCacheKey, value, lastServiceExpiration.Value.Seconds);
-					}
-					else
-					{
-						_cacheServices
-							.ToList()
-							.ForEach(cs => cs.ServiceInstance.SetCachedObject(versionedCacheKey, value, cs.CacheLifeSpan.Seconds));
+						if (!iteration.MoveNext())
+							return;
+						var cs = iteration.Current;
+						while (iteration.MoveNext())
+						{
+							cs.ServiceInstance.SetCachedObject(versionedCacheKey, value, cs.CacheLifeSpan.Seconds);
+							cs = iteration.Current;
+						}
+						cs.ServiceInstance.SetCachedObject(versionedCacheKey, value,
+							lastServiceExpiration?.Seconds ?? cs.CacheLifeSpan.Seconds);
 					}
 				});
 			}
