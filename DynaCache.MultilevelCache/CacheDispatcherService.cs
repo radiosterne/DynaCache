@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,11 +55,12 @@ namespace DynaCache.MultilevelCache
 		{
 			using (new TracingLogProxy(logger))
 			{
+				var emptyCacheServices = new List<CacheServiceContext>();
 				var versionedCacheKey = ApplyVersionToKey(cacheKey, cacheVersion);
-				var cts = new CancellationTokenSource();
 				logger.Debug($"requested value for {versionedCacheKey} key");
 				foreach (var cacheServiceContext in _cacheServices)
 				{
+					var cts = new CancellationTokenSource();
 					var pending = Task.Run(() => versionedCacheKey.ParseMaybe<T>(cacheServiceContext.ServiceInstance.TryGetCachedObject), cts.Token);
 					try
 					{
@@ -69,18 +69,24 @@ namespace DynaCache.MultilevelCache
 						{
 							cts.Cancel();
 							logger.Warn($"cache request for {versionedCacheKey} at {cacheServiceContext.Name} has timed out");
+							emptyCacheServices.Add(cacheServiceContext);
 							continue;
 						}
 					}
 					catch (Exception e)
 					{
 						logger.Error(e, $"cache request for {versionedCacheKey} at {cacheServiceContext.Name} has faulted");
+						emptyCacheServices.Add(cacheServiceContext);
 						continue;
 					}
 					var res = pending.Result;
 					if (res.HasValue)
+					{
+						emptyCacheServices.ForEach(ecs => ecs.ServiceInstance.SetCachedObject(versionedCacheKey, res.Value, ecs.CacheLifeSpan.Seconds));
 						return res;
+					}
 					logger.Debug($"cache not found for {versionedCacheKey} at {cacheServiceContext.Name}");
+					emptyCacheServices.Add(cacheServiceContext);
 				}
 				logger.Debug($"failed to find cached value for {versionedCacheKey}");
 				return Maybe<T>.Nothing;
