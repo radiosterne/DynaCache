@@ -36,10 +36,11 @@ namespace DynaCache.MemoryCache
 			if (!_cache.Contains(cacheKey))
 				return false;
 			var res = _cache[cacheKey];
+			if (Equals(res, nullReference))
+				return true;
 			if (!(res is T))
 				return false;
-			if (!Equals(res, nullReference))
-				result = (T)res;
+			result = (T)res;
 			return true;
 		}
 
