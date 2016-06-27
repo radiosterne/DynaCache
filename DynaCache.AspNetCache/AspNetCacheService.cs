@@ -37,9 +37,13 @@ namespace DynaCache.AspNetCache
 		/// <param name="result">The object that was read from the cache, or null if the key
 		/// could not be found in the cache.</param>
 		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
-		public virtual bool TryGetCachedObject(string cacheKey, out object result)
+		public virtual bool TryGetCachedObject<T>(string cacheKey, out T result)
 		{
-			result = Cache[cacheKey];
+			result = default(T);
+			var res = Cache[cacheKey];
+			if (!(res is T))
+				return false;
+			result = (T)Cache[cacheKey];
 			return result != null;
 		}
 
@@ -49,7 +53,7 @@ namespace DynaCache.AspNetCache
 		/// <param name="cacheKey">The cache key to store the object against.</param>
 		/// <param name="data">The data to store against the key.</param>
 		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
-		public virtual void SetCachedObject(string cacheKey, object data, int duration)
+		public virtual void SetCachedObject<T>(string cacheKey, T data, int duration)
 		{
 			Cache.Insert(cacheKey, data, null, DateTime.Now.AddSeconds(duration), Cache.NoSlidingExpiration);
 		}

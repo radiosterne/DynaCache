@@ -19,7 +19,7 @@ namespace DynaCache
 		/// <param name="result">The object that was read from the cache, or null if the key
 		/// could not be found in the cache.</param>
 		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
-		bool TryGetCachedObject(string cacheKey, out object result);
+		bool TryGetCachedObject<T>(string cacheKey, out T result);
 
 		/// <summary>
 		/// Stores an object in the cache.
@@ -27,6 +27,6 @@ namespace DynaCache
 		/// <param name="cacheKey">The cache key to store the object against.</param>
 		/// <param name="data">The data to store against the key.</param>
 		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
-		void SetCachedObject(string cacheKey, object data, int duration);
+		void SetCachedObject<T>(string cacheKey, T data, int duration);
 	}
 }

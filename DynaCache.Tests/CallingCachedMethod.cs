@@ -3,6 +3,9 @@
 // All rights reserved.
 #endregion
 
+using DynaCache.MemoryCache;
+using NSubstitute;
+
 namespace DynaCache.Tests
 {
 	using System;
@@ -25,26 +28,25 @@ namespace DynaCache.Tests
 		[TestMethod]
 		public void ShouldReadCorrectConfigurationFromNamedCacheDurations()
 		{
-			const string keyNameA = "DynaCache.Tests.TestClasses.NamedCacheableMethodTester_System.Object Execute(System.String).Hello world";
+			const string keyNameA = "DynaCache.Tests.TestClasses.NamedCacheableMethodTester_System.String[] Execute(System.String).Hello world";
 			const string keyNameB = "DynaCache.Tests.TestClasses.NamedCacheableMethodTester_Int32 Execute(System.DateTime).2014-11-01T00:00:00.0000000";
 
-			var cacheService = new Mock<IDynaCacheService>(MockBehavior.Strict);
+			var cacheService = Substitute.For<IDynaCacheService>();
 			var cacheableType = Cacheable.CreateType<NamedCacheableMethodTester>();
 
-			var instance = (ICacheableMethodsTester)Activator.CreateInstance(cacheableType, cacheService.Object);
+			var instance = (ICacheableMethodsTester)Activator.CreateInstance(cacheableType, cacheService);
 
-			object result;
-			cacheService.Setup(s => s.TryGetCachedObject(keyNameA, out result)).Returns(false);
-			cacheService.Setup(s => s.SetCachedObject(keyNameA, It.IsAny<string[]>(), 1));
-			cacheService.Setup(s => s.TryGetCachedObject(keyNameB, out result)).Returns(false);
-			cacheService.Setup(s => s.SetCachedObject(keyNameB, It.IsAny<int>(), 60));
+			string[] resultA;
+			int resultB;
+			cacheService.TryGetCachedObject(keyNameA, out resultA).Returns(false);
+			cacheService.TryGetCachedObject(keyNameB, out resultB).Returns(false);
 
 			var responseA = instance.Execute("Hello world");
-			cacheService.Verify(s => s.TryGetCachedObject(keyNameA, out result), Times.Exactly(1));
-			cacheService.Verify(s => s.SetCachedObject(keyNameA, responseA, 1), Times.Exactly(1));
+			cacheService.Received(1).TryGetCachedObject(keyNameA, out resultA);
+			cacheService.Received(1).SetCachedObject(keyNameA, responseA, 1);
 			var responseB = instance.Execute(new DateTime(2014, 11, 1));
-			cacheService.Verify(s => s.TryGetCachedObject(keyNameB, out result), Times.Exactly(1));
-			cacheService.Verify(s => s.SetCachedObject(keyNameB, responseB, 60), Times.Exactly(1));
+			cacheService.Received(1).TryGetCachedObject(keyNameB, out resultB);
+			cacheService.Received(1).SetCachedObject(keyNameB, responseB, 60);
 		}
 
 		/// <summary>
@@ -54,21 +56,20 @@ namespace DynaCache.Tests
 		[TestMethod]
 		public void ShouldWriteToCacheServiceOnFirstCall()
 		{
-			const string keyName = "DynaCache.Tests.TestClasses.OneCacheableMethodTester_System.Object Execute(System.String).Hello world";
+			const string keyName = "DynaCache.Tests.TestClasses.OneCacheableMethodTester_System.String[] Execute(System.String).Hello world";
 
-			var cacheService = new Mock<IDynaCacheService>(MockBehavior.Strict);
+			var cacheService = Substitute.For<IDynaCacheService>();
 			var cacheableType = Cacheable.CreateType<OneCacheableMethodTester>();
 
-			var instance = (ICacheableMethodsTester)Activator.CreateInstance(cacheableType, cacheService.Object);
+			var instance = (ICacheableMethodsTester)Activator.CreateInstance(cacheableType, cacheService);
 
 			object result;
-			cacheService.Setup(s => s.TryGetCachedObject(keyName, out result)).Returns(false);
-			cacheService.Setup(s => s.SetCachedObject(keyName, It.IsAny<string[]>(), 100));
+			cacheService.TryGetCachedObject(keyName, out result).Returns(false);
 
 			var response = instance.Execute("Hello world");
 
-			cacheService.Verify(s => s.TryGetCachedObject(keyName, out result), Times.Exactly(1));
-			cacheService.Verify(s => s.SetCachedObject(keyName, response, 100), Times.Exactly(1));
+			cacheService.Received(1).TryGetCachedObject(keyName, out result);
+			cacheService.Received(1).SetCachedObject(keyName, response, 100);
 		}
 
 		/// <summary>
@@ -79,19 +80,18 @@ namespace DynaCache.Tests
 		{
 			const string keyName = "DynaCache.Tests.TestClasses.GenericTester`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]_System.String Convert(Int32).199";
 
-			var cacheService = new Mock<IDynaCacheService>(MockBehavior.Strict);
+			var cacheService = Substitute.For<IDynaCacheService>();
 			var cacheableType = Cacheable.CreateType<GenericTester<int>>();
 
-			var instance = (IGenericTester<int>)Activator.CreateInstance(cacheableType, cacheService.Object);
+			var instance = (IGenericTester<int>)Activator.CreateInstance(cacheableType, cacheService);
 
-			object result = "Blah";
-			cacheService.Setup(s => s.TryGetCachedObject(keyName, out result)).Returns(true);
+			string result;
+			cacheService.TryGetCachedObject(keyName, out result).Returns(true);
 
-			var response = instance.Convert(199);
+			instance.Convert(199);
 
-			Assert.AreSame(response, result);
-			cacheService.Verify(s => s.TryGetCachedObject(keyName, out result), Times.Exactly(1));
-			cacheService.Verify(s => s.SetCachedObject(keyName, It.IsAny<object>(), It.IsAny<int>()), Times.Never());
+			cacheService.Received(1).TryGetCachedObject(keyName, out result);
+			cacheService.DidNotReceive().SetCachedObject(keyName, Arg.Any<object>(), Arg.Any<int>());
 		}
 
 		/// <summary>
