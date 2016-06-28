@@ -7,6 +7,7 @@ using DynaCache.MultilevelCache.Configuration.CacheDispatcher;
 using DynaCache.MultilevelCache.Domain;
 using DynaCache.MultilevelCache.Internals;
 using Functional.Maybe;
+using Ninject;
 using NLog;
 using NLog.Extension;
 
@@ -21,7 +22,7 @@ namespace DynaCache.MultilevelCache.Configuration
 
 		private readonly IDynaCacheService[] _leveledCacheServiceImplementations;
 
-		public CacheConfigurationProviderService(IDynaCacheService[] leveledCacheServiceImplementations)
+		public CacheConfigurationProviderService([Named("SlaveCache")] IDynaCacheService[] leveledCacheServiceImplementations)
 		{
 			_cdSection = (CacheDispatcherConfiguration)ConfigurationManager.GetSection(CacheDispatcherSectionName);
 			_leveledCacheServiceImplementations = leveledCacheServiceImplementations;

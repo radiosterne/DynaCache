@@ -1,8 +1,7 @@
-﻿using System;
-using DynaCache.RedisCache.Configuration;
-using DynaCache.RedisCache.Internals;
+﻿using DynaCache.RedisCache.Internals;
 using NLog;
 using NLog.Extension;
+using System;
 
 namespace DynaCache.RedisCache
 {
@@ -12,12 +11,7 @@ namespace DynaCache.RedisCache
 		private readonly IRedisService _redisService;
 		private readonly ICacheSerializer _serializer;
 
-		public RedisCacheService()
-			: this(new RedisService(new RedisConfigurationProviderService()), new ProtobufCacheSerializer())
-		{
-		}
-
-		internal RedisCacheService(IRedisService redisService, ICacheSerializer serializer)
+		public RedisCacheService(IRedisService redisService, ICacheSerializer serializer)
 		{
 			_redisService = redisService;
 			_serializer = serializer;

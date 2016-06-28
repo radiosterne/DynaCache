@@ -12,9 +12,9 @@ using NLog.Extension;
 
 namespace DynaCache.MultilevelCache
 {
-	public class CacheDispatcherService : IDynaCacheService
+	public class MultilevelCacheService : IDynaCacheService
 	{
-		private const string CacheVersionPrefix = ":cache-version:";
+		private const string CacheVersionPrefix = "cache-version:";
 
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 
@@ -22,12 +22,7 @@ namespace DynaCache.MultilevelCache
 		private readonly uint _currentCacheVersion;
 		private readonly uint _previousCacheVersion;
 
-		public CacheDispatcherService(IDynaCacheService[] implementations)
-			: this(new CacheConfigurationProviderService(implementations))
-		{
-		}
-
-		internal CacheDispatcherService(ICacheConfigurationProviderService configurationProviderService)
+		public MultilevelCacheService(ICacheConfigurationProviderService configurationProviderService)
 		{
 			_cacheServices = configurationProviderService.GetCachingServices();
 			_currentCacheVersion = configurationProviderService.GetCurrentCacheVersion();
@@ -123,7 +118,7 @@ namespace DynaCache.MultilevelCache
 			using (new TracingLogProxy(logger))
 				return Regex.IsMatch(cacheKey, $@"{Regex.Escape(CacheVersionPrefix)}\d+$")
 					? cacheKey
-					: cacheKey + $"{CacheVersionPrefix}{cacheVersion}";
+					: $"{CacheVersionPrefix}{cacheVersion}:" + cacheKey;
 		}
 	}
 }
