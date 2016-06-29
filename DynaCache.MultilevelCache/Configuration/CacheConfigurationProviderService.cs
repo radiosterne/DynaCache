@@ -15,7 +15,7 @@ namespace DynaCache.MultilevelCache.Configuration
 {
 	internal class CacheConfigurationProviderService : ICacheConfigurationProviderService
 	{
-		private const string CacheDispatcherSectionName = "cacheDispatcher";
+		private const string CacheDispatcherSectionName = "dynaCache.multilevelCache";
 
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 		private readonly CacheDispatcherConfiguration _cdSection;

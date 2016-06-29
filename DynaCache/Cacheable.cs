@@ -277,7 +277,7 @@ namespace DynaCache
 			var il = method.GetILGenerator();
 			var cacheKeyLocal = il.DeclareLocal(typeof(string));
 			var returnValueLocal = il.DeclareLocal(method.ReturnType);
-			var cacheOutValueLocal = il.DeclareLocal(typeof(object));
+			var cacheOutValueLocal = il.DeclareLocal(method.ReturnType);
 
 			var cacheKeyTemplate = CreateCacheKeyTemplate(methodInfo, methodParams);
 			FormatCacheKey(methodParams, il, cacheKeyLocal, cacheKeyTemplate);
@@ -395,16 +395,6 @@ namespace DynaCache
 
 			// Value was in cache
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			// ReSharper disable once PossibleNullReferenceException -- not null
-			if (returnValueLocal.LocalType.IsClass)
-			{
-				il.Emit(OpCodes.Castclass, returnValueLocal.LocalType);
-			}
-			else
-			{
-				il.Emit(OpCodes.Unbox_Any, returnValueLocal.LocalType);
-			}
-
 			il.Emit(OpCodes.Ret);
 
 			// Value wasn't in cache

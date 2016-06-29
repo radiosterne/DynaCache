@@ -10,7 +10,7 @@ namespace DynaCache.RedisCache.Configuration
 {
 	internal class RedisConfigurationProviderService : IRedisConfigurationProviderService
 	{
-		private const string RedisSectionName = "redis";
+		private const string RedisSectionName = "redisConfiguration";
 
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 

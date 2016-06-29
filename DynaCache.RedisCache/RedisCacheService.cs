@@ -2,6 +2,7 @@
 using NLog;
 using NLog.Extension;
 using System;
+using StackExchange.Redis;
 
 namespace DynaCache.RedisCache
 {
@@ -23,7 +24,16 @@ namespace DynaCache.RedisCache
 			{
 				result = default(T);
 				logger.Debug($"cache for {cacheKey} requested");
-				var res = _redisService.Database.StringGet(cacheKey);
+				RedisValue res;
+				try
+				{
+					res = _redisService.Database.StringGet(cacheKey);
+				}
+				catch (Exception e)
+				{
+					logger.Debug($"failed to retrieve cache for {cacheKey} due to {e}");
+					return false;
+				}
 				var notFound = res.IsNull;
 				if (notFound)
 				{

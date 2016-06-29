@@ -39,7 +39,7 @@ namespace DynaCache.MultilevelCache
 					res.Do(v => Store(cacheKey, _currentCacheVersion, v)); // save to new version if old version fits new
 					return res;
 				});
-			result = retrieved.Value;
+			result = retrieved.HasValue ? retrieved.Value : default(T);
 			return retrieved.HasValue;
 		}
 
@@ -78,6 +78,7 @@ namespace DynaCache.MultilevelCache
 					if (res.HasValue)
 					{
 						emptyCacheServices.ForEach(ecs => ecs.ServiceInstance.SetCachedObject(versionedCacheKey, res.Value, ecs.CacheLifeSpan.Seconds));
+						logger.Debug($"cache for {versionedCacheKey} key found at {cacheServiceContext.Name}");
 						return res;
 					}
 					logger.Debug($"cache not found for {versionedCacheKey} at {cacheServiceContext.Name}");
@@ -94,23 +95,29 @@ namespace DynaCache.MultilevelCache
 			{
 				var versionedCacheKey = ApplyVersionToKey(cacheKey, cacheVersion);
 				logger.Debug($"storing value for key {versionedCacheKey} in cache");
-				Task.Run(() =>
+				using (var cacheServiceIterator = _cacheServices.GetEnumerator())
 				{
-					using (var iteration = _cacheServices.GetEnumerator())
+					if (!cacheServiceIterator.MoveNext())
+						return;
+					var cs = cacheServiceIterator.Current;
+					while (cacheServiceIterator.MoveNext())
 					{
-						if (!iteration.MoveNext())
-							return;
-						var cs = iteration.Current;
-						while (iteration.MoveNext())
-						{
-							cs.ServiceInstance.SetCachedObject(versionedCacheKey, value, cs.CacheLifeSpan.Seconds);
-							cs = iteration.Current;
-						}
-						cs.ServiceInstance.SetCachedObject(versionedCacheKey, value,
-							lastServiceExpiration?.Seconds ?? cs.CacheLifeSpan.Seconds);
+						cs.ServiceInstance.SetCachedObject(versionedCacheKey, value, RoundSeconds(cs.CacheLifeSpan));
+						cs = cacheServiceIterator.Current;
 					}
-				});
+					cs.ServiceInstance.SetCachedObject(versionedCacheKey, value, RoundSeconds(lastServiceExpiration ?? cs.CacheLifeSpan));
+				}
 			}
+		}
+
+		private static int RoundSeconds(TimeSpan timeSpan)
+		{
+			var seconds = timeSpan.TotalSeconds;
+			return
+				int.MaxValue < seconds
+					? int.MaxValue
+					: Convert.ToInt32(seconds);
+
 		}
 
 		private static string ApplyVersionToKey(string cacheKey, uint cacheVersion)
