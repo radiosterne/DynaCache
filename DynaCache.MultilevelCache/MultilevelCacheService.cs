@@ -15,7 +15,7 @@ namespace DynaCache.MultilevelCache
 {
 	public class MultilevelCacheService : IDynaCacheService, ICacheInvalidator
 	{
-		private const string CacheVersionPrefix = "cache-version:";
+		private const string CacheVersionPrefix = "cache-version-";
 
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 

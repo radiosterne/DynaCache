@@ -308,24 +308,23 @@ namespace DynaCache
 		private static string CreateCacheKeyTemplate(MethodInfo methodInfo, ParameterInfo[] methodParams)
 		{
 			var cacheKeyTemplate = new StringBuilder();
-			// ReSharper disable once PossibleNullReferenceException -- we know that DeclaringType exists for sure
-			cacheKeyTemplate.Append(methodInfo.DeclaringType.FullName)
-				.Append('_')
-				.Append(methodInfo);
+			var @params = methodInfo.GetParameters();
 
-			for (var i = 0; i < methodParams.Length; i++)
-			{
-				cacheKeyTemplate.Append(".{").Append(i);
-				string format;
-				if (TypeFormats.TryGetValue(methodParams[i].ParameterType, out format))
-				{
-					cacheKeyTemplate.Append(format);
-				}
-				
-				cacheKeyTemplate.Append('}');
-			}
-
+			var type = methodInfo.DeclaringType;
+			if (type != null)
+				cacheKeyTemplate.Append(type.FullName).Append(':');
+			cacheKeyTemplate.Append(methodInfo.Name).Append(':');
+			cacheKeyTemplate.Append(string.Join("|", @params.Select(p => p.ParameterType.FullName))).Append(':');
+			cacheKeyTemplate.Append(string.Join("|", @params.Select(GetTypeFormatPlaceholder)));
 			return cacheKeyTemplate.ToString();
+		}
+
+		private static string GetTypeFormatPlaceholder(ParameterInfo p, int index)
+		{
+			string specialFormat;
+			if (!TypeFormats.TryGetValue(p.ParameterType, out specialFormat))
+				specialFormat = string.Empty;
+			return $"{{{index}{specialFormat}}}";
 		}
 
 		/// <summary>

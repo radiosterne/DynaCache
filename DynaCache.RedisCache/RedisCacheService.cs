@@ -1,10 +1,9 @@
 ﻿using DynaCache.RedisCache.Internals;
 using NLog;
 using NLog.Extension;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using StackExchange.Redis;
+using System;
+using System.Linq;
 
 namespace DynaCache.RedisCache
 {
@@ -39,9 +38,14 @@ namespace DynaCache.RedisCache
 				{
 					res = _redisService.Database.StringGet(cacheKey);
 				}
+				catch (TimeoutException)
+				{
+					logger.Error($"cache retrieval for {cacheKey} timed out. Consider increasing \"syncTimeout\" setting value in redis service configuration section");
+					return false;
+				}
 				catch (Exception e)
 				{
-					logger.Debug($"failed to retrieve cache for {cacheKey} due to {e}");
+					logger.Error(e, $"failed to retrieve cache for {cacheKey} due to an exception");
 					return false;
 				}
 				var notFound = res.IsNull;
@@ -78,21 +82,28 @@ namespace DynaCache.RedisCache
 
 		public void InvalidateCache(object invalidObject)
 		{
-			var keyPatterns = _invalidationDescriptors
-				.SelectMany(id => id.GetCommonKeyPatternsFrom(invalidObject))
-				.Select(_concreteKeyPatternProvider.ConvertCommonKey)
-				.ToList();
-			var pageSize = _redisService.Configuration.GetPollingPageSize();
-			var keys = _redisService.Servers
-				.SelectMany(
-					collectionSelector: _ => keyPatterns,
-					resultSelector: (s, kp) => s.Keys(pattern: kp, pageSize: pageSize).ToList()) 
-				.SelectMany(_ => _)
-				.Distinct()
-				.ToArray();
-			var deleted = _redisService.Database.KeyDelete(keys);
-			if (keys.Length > deleted)
-				logger.Warn($"Redis found {keys.Length}, but deleted only {deleted}");
+			try
+			{
+				var keyPatterns = _invalidationDescriptors
+					.SelectMany(id => id.GetCommonKeyPatternsFrom(invalidObject))
+					.Select(_concreteKeyPatternProvider.ConvertCommonKey)
+					.ToList();
+				var pageSize = _redisService.Configuration.GetPollingPageSize();
+				var keys = _redisService.Servers
+					.SelectMany(
+						collectionSelector: _ => keyPatterns,
+						resultSelector: (s, kp) => s.Keys(pattern: kp, pageSize: pageSize).ToList())
+					.SelectMany(_ => _)
+					.Distinct()
+					.ToArray();
+				var deleted = _redisService.Database.KeyDelete(keys);
+				if (keys.Length > deleted)
+					logger.Warn($"Redis found {keys.Length}, but deleted only {deleted}");
+			}
+			catch (Exception e)
+			{
+				logger.Error(e, $"failed to invalidate cache with {invalidObject} due to an exception");
+			}
 		}
 	}
 }
