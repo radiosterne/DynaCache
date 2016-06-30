@@ -9,7 +9,7 @@ namespace DynaCache.RedisCache.Ninject
 	{
 		public override void Load()
 		{
-			Bind<IDynaCacheService>().To<RedisCacheService>().InSingletonScope();
+			Bind<IDynaCacheService, ICacheInvalidator>().To<RedisCacheService>().InSingletonScope();
 			Bind<IRedisService>().To<RedisService>().InSingletonScope();
 			Bind<ICacheSerializer>().To<ProtobufCacheSerializer>().InSingletonScope();
 			Bind<IRedisConfigurationProviderService>().To<RedisConfigurationProviderService>().InSingletonScope();
