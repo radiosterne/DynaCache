@@ -313,9 +313,11 @@ namespace DynaCache
 			var type = methodInfo.DeclaringType;
 			if (type != null)
 				cacheKeyTemplate.Append(type.FullName).Append(':');
-			cacheKeyTemplate.Append(methodInfo.Name).Append(':');
-			cacheKeyTemplate.Append(string.Join("|", @params.Select(p => p.ParameterType.FullName))).Append(':');
-			cacheKeyTemplate.Append(string.Join("|", @params.Select(GetTypeFormatPlaceholder)));
+			cacheKeyTemplate.Append(methodInfo.Name);
+			if (!@params.Any())
+				return cacheKeyTemplate.ToString();
+			cacheKeyTemplate.Append(':').Append(string.Join("|", @params.Select(p => p.ParameterType.FullName)));
+			cacheKeyTemplate.Append(':').Append(string.Join("|", @params.Select(GetTypeFormatPlaceholder)));
 			return cacheKeyTemplate.ToString();
 		}
 
