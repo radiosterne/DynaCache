@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using NLog;
+﻿using NLog;
 using NLog.Extension;
 using ProtoBuf;
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
 
 namespace DynaCache.RedisCache.Internals
 {
-	internal class ProtobufCacheSerializer : ICacheSerializer
+	public class ProtobufCacheSerializer : ICacheSerializer
 	{
 		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
 

@@ -1,19 +1,18 @@
-﻿using System;
+﻿using DynaCache.MultilevelCache.Configuration.CacheDispatcher;
+using DynaCache.MultilevelCache.Domain;
+using DynaCache.MultilevelCache.Internals;
+using Functional.Maybe;
+using NLog;
+using NLog.Extension;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
-using DynaCache.MultilevelCache.Configuration.CacheDispatcher;
-using DynaCache.MultilevelCache.Domain;
-using DynaCache.MultilevelCache.Internals;
-using Functional.Maybe;
-using Ninject;
-using NLog;
-using NLog.Extension;
 
 namespace DynaCache.MultilevelCache.Configuration
 {
-	internal class CacheConfigurationProviderService : ICacheConfigurationProviderService
+	public class CacheConfigurationProviderService : ICacheConfigurationProviderService
 	{
 		private const string CacheDispatcherSectionName = "dynaCache.multilevelCache";
 
@@ -22,7 +21,7 @@ namespace DynaCache.MultilevelCache.Configuration
 
 		private readonly IDynaCacheService[] _leveledCacheServiceImplementations;
 
-		public CacheConfigurationProviderService([Named("SlaveCache")] IDynaCacheService[] leveledCacheServiceImplementations)
+		public CacheConfigurationProviderService(IDynaCacheService[] leveledCacheServiceImplementations)
 		{
 			_cdSection = (CacheDispatcherConfiguration)ConfigurationManager.GetSection(CacheDispatcherSectionName);
 			_leveledCacheServiceImplementations = leveledCacheServiceImplementations;

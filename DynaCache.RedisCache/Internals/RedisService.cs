@@ -10,18 +10,18 @@ namespace DynaCache.RedisCache.Internals
 	{
 		IDatabase Database { get; }
 		IReadOnlyCollection<IServer> Servers { get; } 
+		IRedisConfigurationProviderService Configuration { get; }
 	}
 
 	// Should be used as a single instance only
-	internal class RedisService : IRedisService, IDisposable
+	public class RedisService : IRedisService, IDisposable
 	{
-		private readonly IRedisConfigurationProviderService _configuration;
 		private readonly ConnectionMultiplexer _multiplexer;
 
 		public RedisService(IRedisConfigurationProviderService configurationProviderService)
 		{
-			_configuration = configurationProviderService;
-			_multiplexer = ConnectionMultiplexer.Connect(_configuration.GetMultiplexorOptions());
+			Configuration = configurationProviderService;
+			_multiplexer = ConnectionMultiplexer.Connect(Configuration.GetMultiplexorOptions());
 		}
 
 		public void Dispose()
@@ -30,8 +30,10 @@ namespace DynaCache.RedisCache.Internals
 		public IDatabase Database => _multiplexer.GetDatabase();
 
 		public IReadOnlyCollection<IServer> Servers
-			=> _configuration.GetMultiplexorOptions().EndPoints
+			=> Configuration.GetMultiplexorOptions().EndPoints
 				.Select(e => _multiplexer.GetServer(e))
 				.ToList();
+
+		public IRedisConfigurationProviderService Configuration { get; }
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ using NLog.Extension;
 
 namespace DynaCache.MultilevelCache
 {
-	public class MultilevelCacheService : IDynaCacheService
+	public class MultilevelCacheService : IDynaCacheService, ICacheInvalidator
 	{
 		private const string CacheVersionPrefix = "cache-version:";
 
@@ -28,8 +29,7 @@ namespace DynaCache.MultilevelCache
 			_currentCacheVersion = configurationProviderService.GetCurrentCacheVersion();
 			_previousCacheVersion = configurationProviderService.GetPreviousCacheVersion();
 		}
-
-
+		
 		public bool TryGetCachedObject<T>(string cacheKey, out T result)
 		{
 			var retrieved = RetrieveMaybe<T>(cacheKey, _currentCacheVersion) // try to get value from current cache version
@@ -45,6 +45,12 @@ namespace DynaCache.MultilevelCache
 
 		public void SetCachedObject<T>(string cacheKey, T data, int duration)
 			=> Store(cacheKey, _currentCacheVersion, data, TimeSpan.FromSeconds(duration));
+
+		public void InvalidateCache(object invalidObject)
+			=> _cacheServices
+				.Select(cs => cs.ServiceInstance)
+				.OfType<ICacheInvalidator>()
+				.ToList().ForEach(ici => ici.InvalidateCache(invalidObject));
 
 		private Maybe<T> RetrieveMaybe<T>(string cacheKey, uint cacheVersion)
 		{

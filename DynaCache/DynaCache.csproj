@@ -56,6 +56,10 @@
     <Compile Include="CacheableMethodAttribute.cs" />
     <Compile Include="CacheDuration.cs" />
     <Compile Include="CacheDurationCollection.cs" />
+    <Compile Include="EmptyInvalidationDescriptor.cs" />
+    <Compile Include="ICacheInvalidator.cs" />
+    <Compile Include="IConcreteKeyPatternProvider.cs" />
+    <Compile Include="IInvalidationDescriptor.cs" />
     <Compile Include="ToStringableAttribute.cs" />
     <Compile Include="DynaCacheSection.cs" />
     <Compile Include="DynaCacheException.cs" />
