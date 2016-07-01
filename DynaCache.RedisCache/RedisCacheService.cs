@@ -9,7 +9,7 @@ namespace DynaCache.RedisCache
 {
 	public class RedisCacheService : IDynaCacheService, ICacheInvalidator
 	{
-		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
+		private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 		private readonly IRedisService _redisService;
 		private readonly ICacheSerializer _serializer;
 		private readonly IInvalidationDescriptor[] _invalidationDescriptors;
@@ -45,7 +45,7 @@ namespace DynaCache.RedisCache
 				}
 				catch (Exception e)
 				{
-					logger.Error(e, $"failed to retrieve cache for {cacheKey} due to an exception");
+					logger.Error($"failed to retrieve cache for {cacheKey} due to {e}");
 					return false;
 				}
 				var notFound = res.IsNull;
@@ -63,7 +63,7 @@ namespace DynaCache.RedisCache
 				}
 				catch (Exception e)
 				{
-					logger.Error(e, $"failed to deserialize cache for {cacheKey}");
+					logger.Error($"failed to deserialize cache for {cacheKey} due to {e}");
 					return false;
 				}
 			}
@@ -75,8 +75,28 @@ namespace DynaCache.RedisCache
 			{
 				var expiration = TimeSpan.FromSeconds(duration);
 				logger.Debug($"storing cache for {cacheKey} with expiry {expiration}");
-				var serialized = _serializer.Serialize(data);
-				_redisService.Database.StringSet(cacheKey, serialized, expiration);
+				string serialized;
+				try
+				{
+					serialized = _serializer.Serialize(data);
+				}
+				catch (Exception e)
+				{
+					logger.Error($"failed to serialize {data} for key {cacheKey} due to {e}");
+					return;
+				}
+				try
+				{
+					_redisService.Database.StringSet(cacheKey, serialized, expiration);
+				}
+				catch (TimeoutException)
+				{
+					logger.Error($"cache setter for {cacheKey} timed out. Consider increasing \"syncTimeout\" setting value in redis service configuration section");
+				}
+				catch (Exception e)
+				{
+					logger.Error($"failed to set cache for {cacheKey} due to {e}");
+				}
 			}
 		}
 
@@ -102,7 +122,7 @@ namespace DynaCache.RedisCache
 			}
 			catch (Exception e)
 			{
-				logger.Error(e, $"failed to invalidate cache with {invalidObject} due to an exception");
+				logger.Error($"failed to invalidate cache with {invalidObject} due to an exception due to {e}");
 			}
 		}
 	}

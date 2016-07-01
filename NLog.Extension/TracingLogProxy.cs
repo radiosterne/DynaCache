@@ -8,9 +8,9 @@ namespace NLog.Extension
 		private const string UndefinedCaller = "UNDEFINED";
 
 		private readonly string _callerName;
-		private readonly ILogger _logger;
+		private readonly Logger _logger;
 
-		public TracingLogProxy(ILogger wrappedLogger, [CallerMemberName] string callerName = UndefinedCaller)
+		public TracingLogProxy(Logger wrappedLogger, [CallerMemberName] string callerName = UndefinedCaller)
 		{
 			_logger = wrappedLogger;
 			_callerName = callerName;

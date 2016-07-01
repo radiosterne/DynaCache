@@ -13,7 +13,7 @@ namespace DynaCache.RedisCache.Configuration
 		private const string RedisSectionName = "redisConfiguration";
 		private const int DefaultPollingPageSize = 1000;
 
-		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
+		private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
 		private readonly RedisConfiguration _redisSection;
 

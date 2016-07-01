@@ -17,7 +17,7 @@ namespace DynaCache.MultilevelCache
 	{
 		private const string CacheVersionPrefix = "cache-version-";
 
-		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
+		private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
 		private readonly IReadOnlyCollection<CacheServiceContext> _cacheServices;
 		private readonly uint _currentCacheVersion;
@@ -76,7 +76,7 @@ namespace DynaCache.MultilevelCache
 					}
 					catch (Exception e)
 					{
-						logger.Error(e, $"cache request for {versionedCacheKey} at {cacheServiceContext.Name} has faulted");
+						logger.Error($"cache request for {versionedCacheKey} at {cacheServiceContext.Name} has faulted due to {e}");
 						emptyCacheServices.Add(cacheServiceContext);
 						continue;
 					}
