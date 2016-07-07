@@ -117,7 +117,7 @@ namespace DynaCache.RedisCache
 					.Distinct()
 					.ToArray();
 				var deleted = _redisService.Database.KeyDelete(keys);
-				if (keys.Length > deleted)
+				if (keys.Length != deleted)
 					logger.Warn($"Redis found {keys.Length}, but deleted only {deleted}");
 			}
 			catch (Exception e)
