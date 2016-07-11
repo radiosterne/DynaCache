@@ -1,6 +1,5 @@
 ﻿using DynaCache.RedisCache.Internals;
 using NLog;
-using NLog.Extension;
 using StackExchange.Redis;
 using System;
 using System.Linq;
@@ -29,74 +28,68 @@ namespace DynaCache.RedisCache
 
 		public bool TryGetCachedObject<T>(string cacheKey, out T result)
 		{
-			using (new TracingLogProxy(logger))
+			result = default(T);
+			logger.Debug($"cache for {cacheKey} requested");
+			RedisValue res;
+			try
 			{
-				result = default(T);
-				logger.Debug($"cache for {cacheKey} requested");
-				RedisValue res;
-				try
-				{
-					res = _redisService.Database.StringGet(cacheKey);
-				}
-				catch (TimeoutException)
-				{
-					logger.Error($"cache retrieval for {cacheKey} timed out. Consider increasing \"syncTimeout\" setting value in redis service configuration section");
-					return false;
-				}
-				catch (Exception e)
-				{
-					logger.Error($"failed to retrieve cache for {cacheKey} due to {e}");
-					return false;
-				}
-				var notFound = res.IsNull;
-				if (notFound)
-				{
-					logger.Debug($"cache not found for {cacheKey}");
-					return false;
-				}
-				var serialized = res.ToString();
-				logger.Debug($"found cache for {cacheKey}");
-				try
-				{
-					result = _serializer.Deserialize<T>(serialized);
-					return true;
-				}
-				catch (Exception e)
-				{
-					logger.Error($"failed to deserialize cache for {cacheKey} due to {e}");
-					return false;
-				}
+				res = _redisService.Database.StringGet(cacheKey);
+			}
+			catch (TimeoutException)
+			{
+				logger.Error($"cache retrieval for {cacheKey} timed out. Consider increasing \"syncTimeout\" setting value in redis service configuration section");
+				return false;
+			}
+			catch (Exception e)
+			{
+				logger.Error($"failed to retrieve cache for {cacheKey} due to {e}");
+				return false;
+			}
+			var notFound = res.IsNull;
+			if (notFound)
+			{
+				logger.Debug($"cache not found for {cacheKey}");
+				return false;
+			}
+			var serialized = res.ToString();
+			logger.Debug($"found cache for {cacheKey}");
+			try
+			{
+				result = _serializer.Deserialize<T>(serialized);
+				return true;
+			}
+			catch (Exception e)
+			{
+				logger.Error($"failed to deserialize cache for {cacheKey} due to {e}");
+				return false;
 			}
 		}
 
 		public void SetCachedObject<T>(string cacheKey, T data, int duration)
 		{
-			using (new TracingLogProxy(logger))
+			var expiration = TimeSpan.FromSeconds(duration);
+			logger.Debug($"storing cache for {cacheKey} with expiry {expiration}");
+			string serialized;
+			try
 			{
-				var expiration = TimeSpan.FromSeconds(duration);
-				logger.Debug($"storing cache for {cacheKey} with expiry {expiration}");
-				string serialized;
-				try
-				{
-					serialized = _serializer.Serialize(data);
-				}
-				catch (Exception e)
-				{
-					logger.Error($"failed to serialize {data} for key {cacheKey} due to {e}");
-					return;
-				}
-				try
-				{
-					_redisService.Database.StringSet(cacheKey, serialized, expiration);
-				}
-				catch (TimeoutException)
-				{
-					logger.Error($"cache setter for {cacheKey} timed out. Consider increasing \"syncTimeout\" setting value in redis service configuration section");
-				}
-				catch (Exception e)
-				{
-					logger.Error($"failed to set cache for {cacheKey} due to {e}");
-				}
+				serialized = _serializer.Serialize(data);
+			}
+			catch (Exception e)
+			{
+				logger.Error($"failed to serialize {data} for key {cacheKey} due to {e}");
+				return;
+			}
+			try
+			{
+				_redisService.Database.StringSet(cacheKey, serialized, expiration);
+			}
+			catch (TimeoutException)
+			{
+				logger.Error($"cache setter for {cacheKey} timed out. Consider increasing \"syncTimeout\" setting value in redis service configuration section");
+			}
+			catch (Exception e)
+			{
+				logger.Error($"failed to set cache for {cacheKey} due to {e}");
 			}
 		}
 

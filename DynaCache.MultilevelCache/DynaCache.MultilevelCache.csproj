@@ -69,10 +69,6 @@
       <Project>{F4EE6A5E-A9EC-4119-A8E3-A1D270732D0D}</Project>
       <Name>DynaCache</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NLog.Extension\NLog.Extension.csproj">
-      <Project>{3ABC04DB-454F-4543-99E3-84BF6875DA95}</Project>
-      <Name>NLog.Extension</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

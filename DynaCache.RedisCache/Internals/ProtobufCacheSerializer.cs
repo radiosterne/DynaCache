@@ -1,5 +1,4 @@
 ﻿using NLog;
-using NLog.Extension;
 using ProtoBuf;
 using System;
 using System.Globalization;
@@ -14,7 +13,6 @@ namespace DynaCache.RedisCache.Internals
 
 		public string Serialize<T>(T @object)
 		{
-			using (new TracingLogProxy(logger))
 			using (var stream = new MemoryStream())
 			{
 				Serializer.Serialize(stream, @object);
@@ -28,17 +26,14 @@ namespace DynaCache.RedisCache.Internals
 
 		public T Deserialize<T>(string @object)
 		{
-			using (new TracingLogProxy(logger))
-			{
-				if (@object.Length % 2 != 0)
-					throw new InvalidOperationException("Data is corrupt, it should contain 2*n amount of chars");
-				var length = @object.Length/2;
-				var bytes = new byte[length];
-				for (var i = 0; i < length; i++)
-					bytes[i] =  byte.Parse($"{@object[i*2]}{@object[i*2+1]}", NumberStyles.HexNumber);
-				using (var stream = new MemoryStream(bytes))
-					return Serializer.Deserialize<T>(stream);
-			}
+			if (@object.Length % 2 != 0)
+				throw new InvalidOperationException("Data is corrupt, it should contain 2*n amount of chars");
+			var length = @object.Length/2;
+			var bytes = new byte[length];
+			for (var i = 0; i < length; i++)
+				bytes[i] =  byte.Parse($"{@object[i*2]}{@object[i*2+1]}", NumberStyles.HexNumber);
+			using (var stream = new MemoryStream(bytes))
+				return Serializer.Deserialize<T>(stream);
 		}
 	}
 }
