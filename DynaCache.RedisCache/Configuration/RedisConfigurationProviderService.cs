@@ -35,6 +35,7 @@ namespace DynaCache.RedisCache.Configuration
 				.ForEach(e => res.EndPoints.Add(e.Host, e.PortMaybe.Value));
 
 			_redisSection.SyncTimeout.ParseMaybe<int>(int.TryParse).Do(t => res.SyncTimeout = t);
+			res.AbortOnConnectFail = false;
 
 			return res;
 		}
