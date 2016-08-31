@@ -4,12 +4,12 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3ABC04DB-454F-4543-99E3-84BF6875DA95}</ProjectGuid>
+    <ProjectGuid>{97471507-4568-465D-AFBB-34182351845F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NLog.Extension</RootNamespace>
-    <AssemblyName>NLog.Extension</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <RootNamespace>DynaCache.RedisCache.Ninject</RootNamespace>
+    <AssemblyName>DynaCache.RedisCache.Ninject</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -31,8 +31,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.3.1\lib\net45\NLog.dll</HintPath>
+    <Reference Include="Ninject, Version=3.2.0.0, Culture=neutral, PublicKeyToken=c7192dc5380945e7, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ninject.3.2.2.0\lib\net45-full\Ninject.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -46,7 +46,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TracingLogProxy.cs" />
+    <Compile Include="RedisCacheModule.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DynaCache.RedisCache\DynaCache.RedisCache.csproj">
+      <Project>{1b57bf04-e33f-4dca-af58-b02e6ec71130}</Project>
+      <Name>DynaCache.RedisCache</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DynaCache\DynaCache.csproj">
+      <Project>{f4ee6a5e-a9ec-4119-a8e3-a1d270732d0d}</Project>
+      <Name>DynaCache</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

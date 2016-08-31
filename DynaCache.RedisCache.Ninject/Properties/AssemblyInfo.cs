@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("NLog.Extension")]
+[assembly: AssemblyTitle("DynaCache.RedisCache.Ninject")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("NLog.Extension")]
+[assembly: AssemblyProduct("DynaCache.RedisCache.Ninject")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("3abc04db-454f-4543-99e3-84bf6875da95")]
+[assembly: Guid("97471507-4568-465d-afbb-34182351845f")]
 
 // Version information for an assembly consists of the following four values:
 //

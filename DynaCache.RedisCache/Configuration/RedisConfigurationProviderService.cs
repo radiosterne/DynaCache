@@ -1,18 +1,19 @@
-﻿using System.Configuration;
-using System.Linq;
-using DynaCache.RedisCache.Configuration.Redis;
+﻿using DynaCache.RedisCache.Configuration.Redis;
 using DynaCache.RedisCache.Internals;
 using Functional.Maybe;
 using NLog;
 using StackExchange.Redis;
+using System.Configuration;
+using System.Linq;
 
 namespace DynaCache.RedisCache.Configuration
 {
-	internal class RedisConfigurationProviderService : IRedisConfigurationProviderService
+	public class RedisConfigurationProviderService : IRedisConfigurationProviderService
 	{
-		private const string RedisSectionName = "redis";
+		private const string RedisSectionName = "redisConfiguration";
+		private const int DefaultPollingPageSize = 1000;
 
-		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
+		private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
 		private readonly RedisConfiguration _redisSection;
 
@@ -34,8 +35,17 @@ namespace DynaCache.RedisCache.Configuration
 				.ForEach(e => res.EndPoints.Add(e.Host, e.PortMaybe.Value));
 
 			_redisSection.SyncTimeout.ParseMaybe<int>(int.TryParse).Do(t => res.SyncTimeout = t);
+			res.AbortOnConnectFail = false;
 
 			return res;
+		}
+
+		public int GetPollingPageSize()
+		{
+			var raw = _redisSection.PollingPageSize;
+			return raw.ParseMaybe<int>(int.TryParse)
+				.Match(p => { }, () => logger.Error($"failed to parse {raw} as int"))
+				.OrElse(DefaultPollingPageSize);
 		}
 	}
 }

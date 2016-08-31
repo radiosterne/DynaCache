@@ -4,6 +4,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using MemCache = System.Runtime.Caching.MemoryCache;
 
 namespace DynaCache.MemoryCache
@@ -11,7 +12,7 @@ namespace DynaCache.MemoryCache
 	/// <summary>
 	/// An implementation of <see cref="IDynaCacheService"/> that uses the .NET 4.0 in-memory cache.
 	/// </summary>
-	public class MemoryCacheService : IDynaCacheService, IDisposable
+	public class MemoryCacheService : IDynaCacheService, IDisposable, ICacheInvalidator
 	{
 		/// <summary>
 		/// An object that represents a cached null value. (MemoryCache does not allow for null values to be cached explicitly.)
@@ -21,7 +22,7 @@ namespace DynaCache.MemoryCache
 		/// <summary>
 		/// The in-memory cache instance for this service.
 		/// </summary>
-		private readonly MemCache _cache = new MemCache("CacheService");
+		private MemCache _cache = new MemCache("CacheService");
 
 		/// <summary>
 		/// Tries to get a cached object from the cache using the given cache key.
@@ -78,6 +79,12 @@ namespace DynaCache.MemoryCache
 			{
 				_cache.Dispose();
 			}
+		}
+
+		public void InvalidateCache(object invalidObject)
+		{
+			_cache.Dispose();
+			_cache = new MemCache("CacheService");
 		}
 	}
 }

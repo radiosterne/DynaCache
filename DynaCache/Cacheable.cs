@@ -277,7 +277,7 @@ namespace DynaCache
 			var il = method.GetILGenerator();
 			var cacheKeyLocal = il.DeclareLocal(typeof(string));
 			var returnValueLocal = il.DeclareLocal(method.ReturnType);
-			var cacheOutValueLocal = il.DeclareLocal(typeof(object));
+			var cacheOutValueLocal = il.DeclareLocal(method.ReturnType);
 
 			var cacheKeyTemplate = CreateCacheKeyTemplate(methodInfo, methodParams);
 			FormatCacheKey(methodParams, il, cacheKeyLocal, cacheKeyTemplate);
@@ -308,24 +308,25 @@ namespace DynaCache
 		private static string CreateCacheKeyTemplate(MethodInfo methodInfo, ParameterInfo[] methodParams)
 		{
 			var cacheKeyTemplate = new StringBuilder();
-			// ReSharper disable once PossibleNullReferenceException -- we know that DeclaringType exists for sure
-			cacheKeyTemplate.Append(methodInfo.DeclaringType.FullName)
-				.Append('_')
-				.Append(methodInfo);
+			var @params = methodInfo.GetParameters();
 
-			for (var i = 0; i < methodParams.Length; i++)
-			{
-				cacheKeyTemplate.Append(".{").Append(i);
-				string format;
-				if (TypeFormats.TryGetValue(methodParams[i].ParameterType, out format))
-				{
-					cacheKeyTemplate.Append(format);
-				}
-				
-				cacheKeyTemplate.Append('}');
-			}
-
+			var type = methodInfo.DeclaringType;
+			if (type != null)
+				cacheKeyTemplate.Append(type.FullName).Append(':');
+			cacheKeyTemplate.Append(methodInfo.Name);
+			if (!@params.Any())
+				return cacheKeyTemplate.ToString();
+			cacheKeyTemplate.Append(':').Append(string.Join("|", @params.Select(p => p.ParameterType.FullName)));
+			cacheKeyTemplate.Append(':').Append(string.Join("|", @params.Select(GetTypeFormatPlaceholder)));
 			return cacheKeyTemplate.ToString();
+		}
+
+		private static string GetTypeFormatPlaceholder(ParameterInfo p, int index)
+		{
+			string specialFormat;
+			if (!TypeFormats.TryGetValue(p.ParameterType, out specialFormat))
+				specialFormat = string.Empty;
+			return $"{{{index}{specialFormat}}}";
 		}
 
 		/// <summary>
@@ -395,16 +396,6 @@ namespace DynaCache
 
 			// Value was in cache
 			il.Emit(OpCodes.Ldloc, cacheOutValueLocal);
-			// ReSharper disable once PossibleNullReferenceException -- not null
-			if (returnValueLocal.LocalType.IsClass)
-			{
-				il.Emit(OpCodes.Castclass, returnValueLocal.LocalType);
-			}
-			else
-			{
-				il.Emit(OpCodes.Unbox_Any, returnValueLocal.LocalType);
-			}
-
 			il.Emit(OpCodes.Ret);
 
 			// Value wasn't in cache

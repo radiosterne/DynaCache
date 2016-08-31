@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DynaCache</RootNamespace>
     <AssemblyName>DynaCache</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>SAK</SccProjectName>
     <SccLocalPath>SAK</SccLocalPath>
@@ -56,6 +56,10 @@
     <Compile Include="CacheableMethodAttribute.cs" />
     <Compile Include="CacheDuration.cs" />
     <Compile Include="CacheDurationCollection.cs" />
+    <Compile Include="EmptyInvalidationDescriptor.cs" />
+    <Compile Include="ICacheInvalidator.cs" />
+    <Compile Include="IConcreteKeyPatternProvider.cs" />
+    <Compile Include="IInvalidationDescriptor.cs" />
     <Compile Include="ToStringableAttribute.cs" />
     <Compile Include="DynaCacheSection.cs" />
     <Compile Include="DynaCacheException.cs" />

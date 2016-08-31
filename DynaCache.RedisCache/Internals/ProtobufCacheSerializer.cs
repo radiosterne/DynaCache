@@ -1,34 +1,39 @@
-﻿using System.IO;
-using System.Text;
-using NLog;
-using NLog.Extension;
+﻿using NLog;
 using ProtoBuf;
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
 
 namespace DynaCache.RedisCache.Internals
 {
-	internal class ProtobufCacheSerializer : ICacheSerializer
+	public class ProtobufCacheSerializer : ICacheSerializer
 	{
-		private static readonly ILogger logger = LogManager.GetCurrentClassLogger();
+		private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
 		public string Serialize<T>(T @object)
 		{
-			using (new TracingLogProxy(logger))
 			using (var stream = new MemoryStream())
 			{
 				Serializer.Serialize(stream, @object);
 				var bytes = stream.ToArray();
-				return Encoding.Default.GetString(bytes);
+				var builder = new StringBuilder();
+				foreach (var b in bytes)
+					builder.Append(b.ToString("X2"));
+				return builder.ToString();
 			}
 		}
 
 		public T Deserialize<T>(string @object)
 		{
-			using (new TracingLogProxy(logger))
-			{
-				var bytes = Encoding.Default.GetBytes(@object.ToCharArray());
-				using (var stream = new MemoryStream(bytes))
-					return Serializer.Deserialize<T>(stream);
-			}
+			if (@object.Length % 2 != 0)
+				throw new InvalidOperationException("Data is corrupt, it should contain 2*n amount of chars");
+			var length = @object.Length/2;
+			var bytes = new byte[length];
+			for (var i = 0; i < length; i++)
+				bytes[i] =  byte.Parse($"{@object[i*2]}{@object[i*2+1]}", NumberStyles.HexNumber);
+			using (var stream = new MemoryStream(bytes))
+				return Serializer.Deserialize<T>(stream);
 		}
 	}
 }
