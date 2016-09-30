@@ -202,8 +202,11 @@ namespace DynaCache
 			}
 
 			var constructor = constructors[0];
-			var constructorParameters = (new[] { typeof(IDynaCacheService) }).Concat(constructor.GetParameters().Select(p => p.ParameterType)).ToArray();
-			var constructorDef = cacheableModule.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, constructorParameters);
+			var constructorParameters = (new[] { typeof(IDynaCacheService)})
+				.Concat(constructor.GetParameters().Select(p => p.ParameterType))
+				.ToArray();
+			var constructorDef = cacheableModule.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, 
+				constructorParameters);
 			var gen = constructorDef.GetILGenerator();
 
 			// Call the base constructor
