@@ -112,15 +112,15 @@ namespace DynaCache.Tests
 		}
 
 		/// <summary>
-		/// This test documents the fact that the constructor parameter name is LOST.
+		/// This test documents the fact that the constructor parameter name is preserved.
 		/// </summary>
 		[TestMethod]
-		public void Will_NOT_PreserveConstructorParameterName()
+		public void WillPreserveConstructorParameterName()
 		{
 			Func<Type, ParameterInfo> lastParam = t => t.GetConstructors().Last().GetParameters().Last();
 			var cacheService = Substitute.For<IDynaCacheService>();
 			var cacheableType = Cacheable.CreateType<ConstructorTester>();
-			Assert.AreNotEqual(lastParam(typeof(ConstructorTester)).Name, lastParam(cacheableType).Name);
+			Assert.AreEqual(lastParam(typeof(ConstructorTester)).Name, lastParam(cacheableType).Name);
 		}
 
 		/// <summary>

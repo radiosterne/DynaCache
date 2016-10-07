@@ -3,6 +3,8 @@
 // All rights reserved.
 #endregion
 
+using System.Runtime.InteropServices;
+
 namespace DynaCache
 {
 	using System;
@@ -12,7 +14,6 @@ namespace DynaCache
 	using System.Reflection;
 	using System.Reflection.Emit;
 	using System.Text;
-
 	/// <summary>
 	/// Cacheable provides the ability to create a dynamic cache proxy type for a class.
 	/// </summary>
@@ -201,12 +202,16 @@ namespace DynaCache
 				throw new DynaCacheException("Only one constructor is supported at the moment - sorry.");
 			}
 
-			var constructor = constructors[0];
-			var constructorParameters = (new[] { typeof(IDynaCacheService)})
-				.Concat(constructor.GetParameters().Select(p => p.ParameterType))
+			var original = constructors[0];
+			var originalParams = original.GetParameters();
+			var newParams = (new[] { new { type = typeof(IDynaCacheService), name = "__dynaCache"} })
+				.Concat(originalParams.Select(p => new { type = p.ParameterType, name = p.Name}))
 				.ToArray();
-			var constructorDef = cacheableModule.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, 
-				constructorParameters);
+			var constructorDef = cacheableModule.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard,
+				newParams.Select(p => p.type).ToArray());
+			var paramIndex = 1;
+			foreach (var newParam in newParams)
+				constructorDef.DefineParameter(paramIndex++, ParameterAttributes.None, newParam.name);
 			var gen = constructorDef.GetILGenerator();
 
 			// Call the base constructor
@@ -214,13 +219,13 @@ namespace DynaCache
 			gen.Emit(OpCodes.Ldarg_0);
 
 			// Load the other constructor parameters - skipping the first one that is the cache service
-			for (var i = 1; i < constructorParameters.Length; i++)
+			for (var i = 1; i < newParams.Length; i++)
 			{
 				gen.Emit(OpCodes.Ldarg, i + 1);
 			}
 
 			// Make the call
-			gen.Emit(OpCodes.Call, constructor);
+			gen.Emit(OpCodes.Call, original);
 
 			// Store the cache service
 			gen.Emit(OpCodes.Ldarg_0);
