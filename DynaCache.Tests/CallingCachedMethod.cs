@@ -4,6 +4,7 @@
 #endregion
 
 using DynaCache.MemoryCache;
+using System.Linq;
 using NSubstitute;
 
 namespace DynaCache.Tests
@@ -15,6 +16,8 @@ namespace DynaCache.Tests
 	using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 	using Moq;
+	using System.Diagnostics;
+	using System.Reflection;
 
 	/// <summary>
 	/// The calling cached method.
@@ -92,6 +95,32 @@ namespace DynaCache.Tests
 
 			cacheService.Received(1).TryGetCachedObject(keyName, out result);
 			cacheService.DidNotReceive().SetCachedObject(keyName, Arg.Any<object>(), Arg.Any<int>());
+		}
+
+		/// <summary>
+		/// Verifies that the constructor is created correctly on a generic class.
+		/// </summary>
+		[TestMethod]
+		public void ShouldPassConstructorParameter()
+		{
+			var cacheService = Substitute.For<IDynaCacheService>();
+			var cacheableType = Cacheable.CreateType<ConstructorTester>();
+			const string value = "I am the param";
+			var instance = (ConstructorTester)Activator.CreateInstance(cacheableType, cacheService, value);
+
+			Assert.AreEqual(value, instance.GetParam());
+		}
+
+		/// <summary>
+		/// This test documents the fact that the constructor parameter name is preserved.
+		/// </summary>
+		[TestMethod]
+		public void WillPreserveConstructorParameterName()
+		{
+			Func<Type, ParameterInfo> lastParam = t => t.GetConstructors().Last().GetParameters().Last();
+			var cacheService = Substitute.For<IDynaCacheService>();
+			var cacheableType = Cacheable.CreateType<ConstructorTester>();
+			Assert.AreEqual(lastParam(typeof(ConstructorTester)).Name, lastParam(cacheableType).Name);
 		}
 
 		/// <summary>
