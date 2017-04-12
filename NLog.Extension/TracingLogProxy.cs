@@ -15,13 +15,17 @@ namespace NLog.Extension
 			_logger = wrappedLogger;
 			_callerName = callerName;
 			if (_logger.IsTraceEnabled)
+			{
 				_logger.Trace($"{_callerName} called");
+			}
 		}
 
 		public void Dispose()
 		{
 			if (_logger.IsTraceEnabled)
+			{
 				_logger.Trace($"{_callerName} return");
+			}
 		}
 	}
 }

@@ -34,12 +34,18 @@ namespace DynaCache.MemoryCache
 		{
 			result = default(T);
 			if (!_cache.Contains(cacheKey))
+			{
 				return false;
+			}
 			var res = _cache[cacheKey];
 			if (Equals(res, nullReference))
+			{
 				return true;
+			}
 			if (!(res is T))
+			{
 				return false;
+			}
 			result = (T)res;
 			return true;
 		}
@@ -54,9 +60,13 @@ namespace DynaCache.MemoryCache
 		{
 			// ReSharper disable once ConvertIfStatementToNullCoalescingExpression type conflict
 			if (data == null)
+			{
 				_cache.Add(cacheKey, nullReference, DateTime.Now.AddSeconds(duration));
+			}
 			else
+			{
 				_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
+			}
 		}
 
 		/// <summary>

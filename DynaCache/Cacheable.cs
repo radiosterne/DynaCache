@@ -13,6 +13,7 @@ namespace DynaCache
 	using System.Linq;
 	using System.Reflection;
 	using System.Reflection.Emit;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 	/// <summary>
 	/// Cacheable provides the ability to create a dynamic cache proxy type for a class.
@@ -39,18 +40,19 @@ namespace DynaCache
 			typeof(uint),
 			typeof(ulong),
 			typeof(float),
-			typeof(float),
 			typeof(double),
 			typeof(bool),
 			typeof(char),
 			typeof(decimal),
-			typeof(DateTime)
+			typeof(DateTime),
+			typeof(TimeSpan),
+			typeof(Guid)
 		};
 
 		/// <summary>
 		/// A dictionary of custom converters of objects to its cache key part representation.
 		/// </summary>
-		private static readonly Dictionary<Type, MethodInfo> CustomConverters = new Dictionary<Type, MethodInfo>(); 
+		private static readonly Dictionary<Type, MethodInfo> CustomConverters = new Dictionary<Type, MethodInfo>();
 
 		/// <summary>
 		/// The thread synchronization object.
@@ -107,7 +109,23 @@ namespace DynaCache
 		/// <returns>The generated type, or T, if T doesn't have any methods that are decorated with <see cref="CacheableMethodAttribute"/>.</returns>
 		public static Type CreateType<T>()
 		{
-			return CreateType(typeof(T));
+			return CreateType(typeof(T), null);
+		}
+
+		/// <summary>
+		/// Creates a dynamic cache proxy type for a given type. Any methods that are decorated with <see cref="CacheableMethodAttribute"/>
+		/// will be automatically overridden and their results cached as appropriate.
+		/// </summary>
+		/// <remarks>
+		/// Any methods that are decorated with <see cref="CacheableMethodAttribute"/> must be marked as virtual. Additionally, T must be a publicly
+		/// accessible class.
+		/// </remarks>
+		/// <param name="constructorSignature">Signature of required constructor.</param>
+		/// <typeparam name="T">The type to create the cache proxy type for.</typeparam>
+		/// <returns>The generated type, or T, if T doesn't have any methods that are decorated with <see cref="CacheableMethodAttribute"/>.</returns>
+		public static Type CreateType<T>(params Type[] constructorSignature)
+		{
+			return CreateType(typeof(T), constructorSignature);
 		}
 
 		/// <summary>
@@ -119,9 +137,10 @@ namespace DynaCache
 		/// Any methods that are decorated with <see cref="CacheableMethodAttribute"/> must be marked as virtual. Additionally, 
 		/// <paramref name="baseType"/> must be a publicly accessible class.
 		/// </remarks>
+		/// <param name="constructorSignature">Signature of required constructor.</param>
 		/// <returns>The generated type, or <paramref name="baseType"/>, if <paramref name="baseType"/> doesn't have any methods that are 
 		/// decorated with <see cref="CacheableMethodAttribute"/>.</returns>
-		public static Type CreateType(Type baseType)
+		public static Type CreateType(Type baseType, params Type[] constructorSignature)
 		{
 			lock (SyncLock)
 			{
@@ -131,7 +150,7 @@ namespace DynaCache
 					return cacheableType;
 				}
 
-				cacheableType = CreateCacheableType(baseType);
+				cacheableType = CreateCacheableType(baseType, constructorSignature);
 				CacheableTypeCache.Add(baseType, cacheableType);
 				return cacheableType;
 			}
@@ -142,7 +161,8 @@ namespace DynaCache
 		/// </summary>
 		/// <typeparam name="T">Type to convert from</typeparam>
 		/// <param name="converter">Converter function from T to string</param>
-		public static void AddCustomConverter<T>(Func<T, string> converter) where T : class
+		public static void AddCustomConverter<T>(Func<T, string> converter)
+			where T : class
 		{
 			lock (SyncLock)
 			{
@@ -154,8 +174,9 @@ namespace DynaCache
 		/// Creates a cacheable type for the given type.
 		/// </summary>
 		/// <param name="type">The type to create the cacheable proxy for.</param>
+		/// <param name="constructorSignature">Signature of required constructor.</param>
 		/// <returns>The generated type instance, or the given type if no caching is required for it.</returns>
-		private static Type CreateCacheableType(Type type)
+		private static Type CreateCacheableType(Type type, Type[] constructorSignature)
 		{
 			// Get the methods for which we need to override and cache data
 			var methods = type.GetMethods()
@@ -171,14 +192,14 @@ namespace DynaCache
 
 			if (!type.IsPublic)
 			{
-				throw new DynaCacheException("Type must be public");
+				throw new DynaCacheException(string.Format("Type <{0}> must be public.", type.Name));
 			}
 
 			var cacheableModule = Module.DefineType("Cacheable" + type.Name);
 			var cacheServiceField = cacheableModule.DefineField("cacheService", typeof(IDynaCacheService), FieldAttributes.Private);
 
 			cacheableModule.SetParent(type);
-			DefineConstructor(type, cacheableModule, cacheServiceField);
+			DefineConstructor(type, constructorSignature, cacheableModule, cacheServiceField);
 
 			foreach (var method in methods)
 			{
@@ -192,17 +213,14 @@ namespace DynaCache
 		/// Defines the constructor for the cacheable type.
 		/// </summary>
 		/// <param name="type">The base type that the cacheable type derives from.</param>
+		/// <param name="constructorSignature">Signature of required constructor.</param>
 		/// <param name="cacheableModule">The cacheable module.</param>
 		/// <param name="cacheServiceField">The cache service field.</param>
-		private static void DefineConstructor(Type type, TypeBuilder cacheableModule, FieldBuilder cacheServiceField)
+		private static void DefineConstructor(Type type, Type[] constructorSignature, TypeBuilder cacheableModule, FieldBuilder cacheServiceField)
 		{
 			var constructors = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
-			if (constructors.Length > 1)
-			{
-				throw new DynaCacheException("Only one constructor is supported at the moment - sorry.");
-			}
 
-			var original = constructors[0];
+			var original = ChooseConstructor(type, constructors, constructorSignature);
 			var originalParams = original.GetParameters();
 			var newParams = (new[] { new { type = typeof(IDynaCacheService), name = "__dynaCache"} })
 				.Concat(originalParams.Select(p => new { type = p.ParameterType, name = p.Name}))
@@ -211,7 +229,9 @@ namespace DynaCache
 				newParams.Select(p => p.type).ToArray());
 			var paramIndex = 1;
 			foreach (var newParam in newParams)
+			{
 				constructorDef.DefineParameter(paramIndex++, ParameterAttributes.None, newParam.name);
+			}
 			var gen = constructorDef.GetILGenerator();
 
 			// Call the base constructor
@@ -235,6 +255,55 @@ namespace DynaCache
 			gen.Emit(OpCodes.Ret);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static ConstructorInfo ChooseConstructor(Type type, ConstructorInfo[] constructors, Type[] constructorSignature)
+		{
+			ConstructorInfo result;
+			/*
+			if (constructors.Length > 1)
+			{
+				throw new DynaCacheException("Only one constructor is supported at the moment - sorry.");
+			}
+			*/
+
+			if (constructorSignature == null || constructorSignature.Length == 0)
+			{
+				result = constructors.Where(v => v.GetParameters().Length == 0).FirstOrDefault();
+
+				if (result == null)
+				{
+					throw new DynaCacheException(
+						string.Format("Required constructor w/o parameters is missing. Correct \"constructorSignature\" or constructor in type <{0}>.", type.Name)
+						);
+				}
+			}
+			else
+			{
+				result = null;
+				for (int i = 0; i < constructors.Length; i++)
+				{
+					var con = constructors[i];
+					var pa = con.GetParameters().Select(v => v.ParameterType);
+					//pa.SequenceEqual()
+					if (constructorSignature.SequenceEqual(pa))
+					{
+						result = con;
+						break;
+					}
+				}
+
+				//We couldn't get constructor with required signature. Ohh.
+				if (result == null)
+				{
+					throw new DynaCacheException(
+						string.Format("Couldn't get constructor with required signature. Correct <{0}> type.", type.Name)
+						);
+				}
+			}
+
+			return result;
+		}
+
 		/// <summary>
 		/// Defines a method in the dynamic type that wraps the caching behavior around the underlying type's method call.
 		/// </summary>
@@ -244,15 +313,19 @@ namespace DynaCache
 		/// <param name="cacheParams">The cacheable method attribute data that describes the cache behavior for the method.</param>
 		private static void DefineMethod(TypeBuilder cacheableModule, FieldBuilder cacheServiceField, MethodInfo methodInfo, CacheableMethodAttribute cacheParams)
 		{
-			if (methodInfo.IsFinal)
+			if (methodInfo.IsFinal || !methodInfo.IsVirtual)
 			{
-				throw new DynaCacheException("Cacheable methods must be overridable.");
+				throw new DynaCacheException(
+					string.Format("Cacheable methods must be overridable. Correct method <{0}> in type <{1}>.", methodInfo.Name, methodInfo.DeclaringType.Name)
+					);
 			}
 
 			var methodParams = methodInfo.GetParameters().ToArray();
 			if (methodParams.Any(p => p.ParameterType.IsByRef))
 			{
-				throw new DynaCacheException("Reference parameters (out/ref) are not supported for cacheable methods.");
+				throw new DynaCacheException(
+					string.Format("Reference parameters (out/ref) are not supported for cacheable methods. Correct method <{0}> in type <{1}>.", methodInfo.Name, methodInfo.DeclaringType.Name)
+					);
 			}
 
 			foreach(var methodParam in methodParams)
@@ -261,7 +334,7 @@ namespace DynaCache
 
 				if (!(paramType.IsEnum || paramType.ContainsGenericParameters || ToStringableTypes.Contains(paramType) || (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(Nullable<>) && ToStringableTypes.Contains(paramType.GetGenericArguments()[0]))))
 				{
-					if (paramType.GetCustomAttributes(typeof (ToStringableAttribute), false).Any())
+					if (paramType.GetCustomAttributes(typeof(ToStringableAttribute), false).Any())
 					{
 						ToStringableTypes.Add(paramType);
 					}
@@ -298,16 +371,16 @@ namespace DynaCache
 		}
 
 		private static readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>
-															  {
-																  { typeof(DateTime), ":O" },
-																  { typeof(DateTime?), ":O" },
-																  { typeof(DateTimeOffset), ":O" },
-																  { typeof(DateTimeOffset?), ":O" }
-															  };
+		{
+			{ typeof(DateTime), ":O" },
+			{ typeof(DateTime?), ":O" },
+			{ typeof(DateTimeOffset), ":O" },
+			{ typeof(DateTimeOffset?), ":O" }
+		};
 
 		/// <summary>
 		/// Creates a template for a method's cache key, based on the class it is contained within and the number
-		/// of parameters it takes. The cache key template is used at runtime to generate a unique cache key for 
+		/// of parameters it takes. The cache key template is used at runtime to generate a unique cache key for
 		/// a method and it's parameter variations.
 		/// </summary>
 		/// <param name="methodInfo">The method information.</param>
@@ -360,7 +433,7 @@ namespace DynaCache
 				if (!methodParams[i].ParameterType.IsClass)
 				{
 					il.Emit(OpCodes.Box, methodParams[i].ParameterType);
-				} 
+				}
 				else if (CustomConverters.ContainsKey(methodParams[i].ParameterType))
 				{
 					il.Emit(OpCodes.Call, CustomConverters[methodParams[i].ParameterType]);
@@ -395,7 +468,7 @@ namespace DynaCache
 			il.Emit(OpCodes.Ldloca_S, cacheOutValueLocal);
 			var methodInfo = typeof(IDynaCacheService)
 				.GetMethod("TryGetCachedObject")
-				.MakeGenericMethod(returnValueLocal.LocalType);
+				.MakeGenericMethod(typeof(object));
 			il.EmitCall(OpCodes.Callvirt, methodInfo, null);
 			il.Emit(OpCodes.Ldc_I4_0);
 			il.Emit(OpCodes.Ceq);

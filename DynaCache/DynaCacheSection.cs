@@ -22,9 +22,9 @@ namespace DynaCache
 		/// Gets the set of configured cache durations.
 		/// </summary>
 		[ConfigurationProperty("cacheDurations", IsDefaultCollection = false)]
-		[ConfigurationCollection(typeof(CacheDurationCollection), 
-			AddItemName = "add", 
-			ClearItemsName = "clear", 
+		[ConfigurationCollection(typeof(CacheDurationCollection),
+			AddItemName = "add",
+			ClearItemsName = "clear",
 			RemoveItemName = "remove")]
 		public CacheDurationCollection CacheDurations
 		{

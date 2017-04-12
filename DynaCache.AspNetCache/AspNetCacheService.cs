@@ -21,12 +21,13 @@ namespace DynaCache.AspNetCache
 		{
 			get
 			{
-				if (HttpRuntime.Cache == null)
+				var cache = HttpRuntime.Cache;
+				if (cache == null)
 				{
 					throw new InvalidOperationException("No cache available on the HttpRuntime.");
 				}
 
-				return HttpRuntime.Cache;
+				return cache;
 			}
 		}
 
@@ -39,11 +40,10 @@ namespace DynaCache.AspNetCache
 		/// <returns><c>true</c> if the item could be read from the cache, otherwise <c>false</c>.</returns>
 		public virtual bool TryGetCachedObject<T>(string cacheKey, out T result)
 		{
-			result = default(T);
-			var res = Cache[cacheKey];
-			if (!(res is T))
-				return false;
-			result = (T)Cache[cacheKey];
+			var sample = Cache[cacheKey];
+			result = (sample is T)
+				? (T)sample
+				: default(T);
 			return result != null;
 		}
 
