@@ -108,6 +108,7 @@ namespace DynaCache
 		/// <typeparam name="T">The type to create the cache proxy type for.</typeparam>
 		/// <returns>The generated type, or T, if T doesn't have any methods that are decorated with <see cref="CacheableMethodAttribute"/>.</returns>
 		public static Type CreateType<T>()
+			where T : new()
 		{
 			return CreateType(typeof(T), null);
 		}
