@@ -64,38 +64,16 @@ namespace DynaCache
 		/// </summary>
 		private static readonly AssemblyName AssemblyName = new AssemblyName("Dynamic Cacheable Proxies");
 
-#if DEBUG
-		/// <summary>
-		/// The dynamic assembly build that will be used to define the cacheable types.
-		/// </summary>
-		private static readonly AssemblyBuilder AssemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(AssemblyName, AssemblyBuilderAccess.RunAndSave);
 
 		/// <summary>
-		/// The dynamic module that the cacheable types will be created in.
-		/// </summary>
-		private static readonly ModuleBuilder Module = AssemblyBuilder.DefineDynamicModule(AssemblyName.Name, "test.dll");
-#else
-		/// <summary>
 		/// The dynamic assembly build that will be used to define the cacheable types.
 		/// </summary>
-		private static readonly AssemblyBuilder AssemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(AssemblyName, AssemblyBuilderAccess.Run);
+		private static readonly AssemblyBuilder AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(AssemblyName, AssemblyBuilderAccess.Run);
 
 		/// <summary>
 		/// The dynamic module that the cacheable types will be created in.
 		/// </summary>
 		private static readonly ModuleBuilder Module = AssemblyBuilder.DefineDynamicModule(AssemblyName.Name);
-#endif
-
-#if DEBUG
-		/// <summary>
-		/// Saves the underlying assembly.
-		/// </summary>
-		[Conditional("DEBUG")]
-		public static void SaveAssembly()
-		{
-			AssemblyBuilder.Save("test.dll", PortableExecutableKinds.ILOnly, ImageFileMachine.I386);
-		}
-#endif
 
 		/// <summary>
 		/// Creates a dynamic cache proxy type for a given type. Any methods that are decorated with <see cref="CacheableMethodAttribute"/>
