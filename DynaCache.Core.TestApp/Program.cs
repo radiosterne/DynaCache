@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
-using DynaCache.MemoryCache;
-using DynaCache.Services;
+using DynaCache.Extensions;
+using DynaCache.MemoryCache.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DynaCache.TestApp
@@ -12,13 +12,13 @@ namespace DynaCache.TestApp
 		{
 			var services = new ServiceCollection();
 
-			services.AddSingleton<IDynaCacheService, MemoryCacheService>();
+			services.AddMemoryCacheService();
+			services.AddCacheable<IRandomService, RandomService>();
 
-			services.AddTransient(typeof(IRandomService), Cacheable.CreateType<RandomService>());
+			services.AddTransient<Random>();
 
 			var serviceProvider = services.BuildServiceProvider();
 
-			// Use the DI container to construct our cacheable concrete instance of ITestService
 			var service = serviceProvider.GetRequiredService<IRandomService>();
 
 			for (var i = 0; i < 12; i++)

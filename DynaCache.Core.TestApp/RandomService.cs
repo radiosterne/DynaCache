@@ -14,10 +14,12 @@ namespace DynaCache.TestApp
 	/// </summary>
 	public class RandomService : IRandomService
 	{
-		/// <summary>
-		/// The random instance to use when generating random numbers.
-		/// </summary>
-		private readonly Random _random = new Random();
+		private readonly Random _random;
+
+		public RandomService(Random random)
+		{
+			_random = random;
+		}
 
 		/// <summary>
 		/// Gets a random number between the given bounds.

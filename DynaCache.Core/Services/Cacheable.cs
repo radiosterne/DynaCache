@@ -239,22 +239,21 @@ namespace DynaCache
 		private static ConstructorInfo ChooseConstructor(Type type, ConstructorInfo[] constructors, Type[] constructorSignature)
 		{
 			ConstructorInfo result;
-			/*
-			if (constructors.Length > 1)
+
+			if ((constructorSignature == null || constructorSignature.Length == 0) && constructors.Length > 1)
 			{
-				throw new DynaCacheException("Only one constructor is supported at the moment - sorry.");
+				throw new DynaCacheException("Only one constructor is supported without constructorSignature");
 			}
-			*/
 
 			if (constructorSignature == null || constructorSignature.Length == 0)
 			{
-				result = constructors.Where(v => v.GetParameters().Length == 0).FirstOrDefault();
+				result = constructors.FirstOrDefault();
 
 				if (result == null)
 				{
 					throw new DynaCacheException(
-						string.Format("Required constructor w/o parameters is missing. Correct \"constructorSignature\" or constructor in type <{0}>.", type.Name)
-						);
+						$"Required constructor w/o parameters is missing. Correct \"constructorSignature\" or constructor in type <{type.Name}>."
+					);
 				}
 			}
 			else
