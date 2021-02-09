@@ -29,7 +29,7 @@ namespace DynaCache.TestApp
 		/// <returns>
 		/// The random number.
 		/// </returns>
-		[CacheableMethod(1)]
+		[CacheableMethod(10000)]
 		public virtual int GetRandomNumber(int minInclusive, int maxExclusive)
 		{
 			return _random.Next(minInclusive, maxExclusive);

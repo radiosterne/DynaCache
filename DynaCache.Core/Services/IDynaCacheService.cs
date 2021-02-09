@@ -28,5 +28,10 @@ namespace DynaCache.Services
 		/// <param name="data">The data to store against the key.</param>
 		/// <param name="duration">The duration, in seconds, to cache the data for.</param>
 		void SetCachedObject<T>(string cacheKey, T data, int duration);
+
+		/// <summary>
+		/// Clear all data from cache
+		/// </summary>
+		void ClearCache();
 	}
 }

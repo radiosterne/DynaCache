@@ -4,6 +4,7 @@
 #endregion
 
 using System;
+using System.Threading;
 using DynaCache.Services;
 using MemCache = System.Runtime.Caching.MemoryCache;
 
@@ -22,7 +23,7 @@ namespace DynaCache.MemoryCache
 		/// <summary>
 		/// The in-memory cache instance for this service.
 		/// </summary>
-		private readonly MemCache _cache = new MemCache("CacheService");
+		private MemCache _cache = new MemCache("CacheService");
 
 		/// <summary>
 		/// Tries to get a cached object from the cache using the given cache key.
@@ -68,6 +69,16 @@ namespace DynaCache.MemoryCache
 			{
 				_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
 			}
+		}
+
+		public void ClearCache()
+		{
+			var newCache = new MemCache("CacheService");
+			var oldCache = _cache;
+
+			_cache = newCache;
+
+			oldCache.Dispose();
 		}
 
 		/// <summary>
