@@ -3,6 +3,8 @@
 // All rights reserved.
 #endregion
 
+using System.Collections.Generic;
+using System.Linq;
 using DynaCache.Attributes;
 
 namespace DynaCache.TestApp
@@ -30,9 +32,9 @@ namespace DynaCache.TestApp
 		/// The random number.
 		/// </returns>
 		[CacheableMethod(10000)]
-		public virtual int GetRandomNumber(int minInclusive, int maxExclusive)
+		public virtual int GetRandomNumber(List<int> minInclusive)
 		{
-			return _random.Next(minInclusive, maxExclusive);
+			return _random.Next(minInclusive.First(), 20);
 		}
 	}
 }

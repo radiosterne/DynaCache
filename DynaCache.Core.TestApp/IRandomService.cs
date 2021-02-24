@@ -3,6 +3,8 @@
 // All rights reserved.
 #endregion
 
+using System.Collections.Generic;
+
 namespace DynaCache.TestApp
 {
 	/// <summary>
@@ -16,6 +18,6 @@ namespace DynaCache.TestApp
 		/// <param name="minInclusive">The minimum value to return (inclusive).</param>
 		/// <param name="maxExclusive">The maximum value to return (exclusive).</param>
 		/// <returns>The random number.</returns>
-		int GetRandomNumber(int minInclusive, int maxExclusive);
+		int GetRandomNumber(List<int> minInclusive);
 	}
 }

@@ -4,8 +4,10 @@
 #endregion
 
 using System;
+using System.Runtime.Caching;
 using System.Threading;
 using DynaCache.Services;
+using Microsoft.Extensions.Caching.Memory;
 using MemCache = System.Runtime.Caching.MemoryCache;
 
 namespace DynaCache.MemoryCache
@@ -67,7 +69,12 @@ namespace DynaCache.MemoryCache
 			}
 			else
 			{
-				_cache.Add(cacheKey, data, DateTime.Now.AddSeconds(duration));
+				var cacheItemPolicy = new CacheItemPolicy() //TODO to settings
+				{
+					SlidingExpiration = TimeSpan.FromSeconds(duration)
+				};
+
+				_cache.Set(cacheKey, data, cacheItemPolicy);
 			}
 		}
 
